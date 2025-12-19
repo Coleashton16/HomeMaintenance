@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIY Warranty Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .print-only { display: block !important; }
+            /* Ensure table fits on page */
+            table { width: 100%; font-size: 10pt; }
+            td, th { padding: 4px; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <!-- Firebase SDKs (Modular via CDN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            signInWithCustomToken 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            setDoc,
+            getDoc,
+            updateDoc,
+            deleteDoc,
+            doc,
+            onSnapshot, 
+            query, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Expose Firebase to global window
+        window.firebaseModules = {
+            initializeApp,
+            auth: { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken },
+            firestore: { getFirestore, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, onSnapshot, query, serverTimestamp }
+        };
+
+        // Signal that modules are loaded
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <!-- Main Application Script -->
+    <script type="text/babel">
+        // --- 1. BOOTSTRAP ---
+        // Waits for Firebase to be ready before mounting the App
+        const AppWrapper = () => {
+            const [ready, setReady] = React.useState(false);
+            
+            React.useEffect(() => {
+                if (window.firebaseModules) {
+                    setReady(true);
+                } else {
+                    window.addEventListener('firebase-ready', () => setReady(true));
+                }
+            }, []);
+
+            if (!ready) return <div className="h-screen flex items-center justify-center text-slate-500 font-medium">Loading Application...</div>;
+            return <App />;
+        };
+
+        // --- 2. ICONS (Lucide style inline SVGs) ---
+        const Icon = ({ children, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>{children}</svg>
+        );
+        const CarIcon = (p) => <Icon {...p}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></Icon>;
+        const LogOutIcon = (p) => <Icon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></Icon>;
+        const PlusCircleIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></Icon>;
+        const CheckCircleIcon = (p) => <Icon {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const AlertTriangleIcon = (p) => <Icon {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></Icon>;
+        const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+        const SaveIcon = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
+        const PrinterIcon = (p) => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Icon>;
+        const SettingsIcon = (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
+        const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+        const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
+
+        // --- 3. DEFAULTS & CONFIG ---
+        const { useState, useEffect, useMemo } = React;
+        const EST_YEARLY_MILEAGE = 20000;
+        const EST_DAILY_MILEAGE = EST_YEARLY_MILEAGE / 365;
+
+        // Default "Factory" Schedule
+        const DEFAULT_SCHEDULE = [
+            { id: 'oil', name: 'Engine Oil & Filter (0W-16)', intervalMiles: 10000, intervalMonths: 12 },
+            { id: 'rotate', name: 'Tire Rotation', intervalMiles: 5000, intervalMonths: 6 },
+            { id: 'cabin', name: 'Cabin Air Filter', intervalMiles: 20000, intervalMonths: 24 },
+            { id: 'engine_air', name: 'Engine Air Filter', intervalMiles: 20000, intervalMonths: 24 },
+            { id: 'trans', name: 'Transmission Fluid (Drain/Fill)', intervalMiles: 60000, intervalMonths: 72 },
+            { id: 'coolant', name: 'Engine Coolant', intervalMiles: 100000, intervalMonths: 120 },
+            { id: 'spark', name: 'Spark Plugs', intervalMiles: 120000, intervalMonths: 144 },
+            { id: 'brake_fluid', name: 'Brake Fluid Flush', intervalMiles: 30000, intervalMonths: 36 },
+        ];
+
+        // --- 4. UTILITY FUNCTIONS ---
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        };
+
+        // --- 5. COMPONENTS ---
+
+        // A. LOGIN COMPONENT
+        const Login = ({ setUser, auth }) => {
+            const [isRegistering, setIsRegistering] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.firebaseModules.auth;
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError('');
+                try {
+                    if (isRegistering) {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                } catch (err) {
+                    setError(err.message.replace('Firebase: ', ''));
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+                    <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+                        <div className="flex justify-center mb-6">
+                            <div className="bg-blue-600 p-3 rounded-full text-white">
+                                <CarIcon size={32} />
+                            </div>
+                        </div>
+                        <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">DIY Warranty Tracker</h1>
+                        <p className="text-center text-slate-500 mb-6">Toyota Camry 2019 LE</p>
+                        
+                        {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
+
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Email</label>
+                                <input type="email" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Password</label>
+                                <input type="password" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={password} onChange={(e) => setPassword(e.target.value)} />
+                            </div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition font-medium">
+                                {isRegistering ? 'Create Account' : 'Sign In'}
+                            </button>
+                        </form>
+                        <button onClick={() => setIsRegistering(!isRegistering)} className="w-full text-center mt-4 text-sm text-blue-600 hover:underline">
+                            {isRegistering ? 'Already have an account? Sign In' : 'Need an account? Register'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // B. SERVICE FORM (Add & Edit)
+        const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
+            const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
+            
+            // If initialData exists, we are in EDIT mode
+            const isEditMode = !!initialData;
+
+            const [formData, setFormData] = useState(initialData || {
+                date: new Date().toISOString().split('T')[0],
+                mileage: '',
+                serviceType: schedule.length > 0 ? schedule[0].name : 'Oil Change',
+                parts: '',
+                notes: '',
+                skuReference: ''
+            });
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+                try {
+                    const dataPayload = {
+                        ...formData,
+                        mileage: Number(formData.mileage),
+                        timestamp: serverTimestamp() // Update timestamp on edit? Maybe keep original? For audit, update is safer.
+                    };
+
+                    if (isEditMode) {
+                        // UPDATE existing doc
+                        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id);
+                        await updateDoc(docRef, dataPayload);
+                    } else {
+                        // CREATE new doc
+                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
+                    }
+                    onSuccess();
+                    onClose();
+                } catch (error) {
+                    console.error("Error saving document: ", error);
+                    alert("Error saving record: " + error.message);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-blue-600 p-4 flex justify-between items-center shrink-0">
+                            <h2 className="text-white font-bold text-lg">{isEditMode ? 'Edit Service Record' : 'Log New Service'}</h2>
+                            <button onClick={onClose} className="text-blue-100 hover:text-white"><LogOutIcon size={20} className="rotate-180" /></button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase">Date</label>
+                                    <input type="date" required className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase">Mileage</label>
+                                    <input type="number" required placeholder="e.g., 45020" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label>
+                                <select className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.serviceType} onChange={e => setFormData({...formData, serviceType: e.target.value})}>
+                                    {schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}
+                                    <option value="Other">Other / Repair</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Parts Used</label>
+                                <textarea required placeholder="e.g., Toyota OEM 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 h-20" value={formData.parts} onChange={e => setFormData({...formData, parts: e.target.value})} />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">SKU / Part Number Ref</label>
+                                <input type="text" placeholder="e.g. #INV-2023-001 or 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 font-mono" value={formData.skuReference} onChange={e => setFormData({...formData, skuReference: e.target.value})} />
+                            </div>
+
+                             <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Notes</label>
+                                <input type="text" placeholder="Any issues found?" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                            </div>
+
+                            <div className="pt-4 shrink-0">
+                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition disabled:opacity-50">
+                                    {isSubmitting ? 'Saving...' : 'Save Record'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // C. SCHEDULE MANAGER (Add/Edit Custom Items)
+        const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
+            const { setDoc, doc } = window.firebaseModules.firestore;
+            const [items, setItems] = useState(currentSchedule);
+            const [newItem, setNewItem] = useState({ name: '', intervalMiles: 5000, intervalMonths: 6 });
+
+            const saveSchedule = async (newItems) => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule'), {
+                        items: newItems
+                    });
+                    setItems(newItems);
+                    onUpdate(newItems);
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to save schedule");
+                }
+            };
+
+            const handleAdd = () => {
+                if (!newItem.name) return;
+                const updated = [...items, { ...newItem, id: Date.now().toString() }];
+                saveSchedule(updated);
+                setNewItem({ name: '', intervalMiles: 5000, intervalMonths: 6 });
+            };
+
+            const handleDelete = (id) => {
+                if(!confirm("Delete this maintenance item?")) return;
+                const updated = items.filter(i => i.id !== id);
+                saveSchedule(updated);
+            };
+
+            const handleEdit = (id, field, value) => {
+                const updated = items.map(i => i.id === id ? { ...i, [field]: value } : i);
+                // Don't save on every keystroke, users must click "Save All" or we use a debounced save in a real app. 
+                // For simplicity here, we update state locally and add a manual save, or update immediately.
+                // Let's update state only, then provide a Save button for edits to existing rows? 
+                // Simpler: Just update state and save immediately for this "html style" app to ensure persistence.
+                saveSchedule(updated);
+            };
+
+            return (
+                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-slate-800 p-4 flex justify-between items-center text-white shrink-0">
+                            <h2 className="font-bold text-lg">Manage Maintenance Schedule</h2>
+                            <button onClick={onClose} className="hover:text-slate-300">Close</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            
+                            {/* Add New */}
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <h3 className="font-bold text-sm text-slate-700 mb-2 uppercase">Add New Item</h3>
+                                <div className="flex flex-col md:flex-row gap-2">
+                                    <input placeholder="Service Name (e.g. Wiper Blades)" className="border p-2 rounded flex-grow" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                                    <input type="number" placeholder="Miles" className="border p-2 rounded w-24" value={newItem.intervalMiles} onChange={e => setNewItem({...newItem, intervalMiles: parseInt(e.target.value)})} />
+                                    <input type="number" placeholder="Months" className="border p-2 rounded w-20" value={newItem.intervalMonths} onChange={e => setNewItem({...newItem, intervalMonths: parseInt(e.target.value)})} />
+                                    <button onClick={handleAdd} className="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700">Add</button>
+                                </div>
+                            </div>
+
+                            {/* List */}
+                            <div>
+                                <h3 className="font-bold text-sm text-slate-700 mb-2 uppercase">Current Schedule</h3>
+                                <div className="space-y-2">
+                                    {items.map(item => (
+                                        <div key={item.id} className="flex flex-col md:flex-row items-center gap-2 p-3 border rounded hover:bg-slate-50">
+                                            <input className="font-bold text-slate-800 bg-transparent border-none focus:bg-white flex-grow w-full" value={item.name} onChange={(e) => handleEdit(item.id, 'name', e.target.value)} />
+                                            <div className="flex items-center gap-2 text-sm text-slate-500">
+                                                <span>Every</span>
+                                                <input type="number" className="w-20 border rounded p-1 text-center" value={item.intervalMiles} onChange={(e) => handleEdit(item.id, 'intervalMiles', parseInt(e.target.value))} />
+                                                <span>mi</span>
+                                                <span>/</span>
+                                                <input type="number" className="w-16 border rounded p-1 text-center" value={item.intervalMonths} onChange={(e) => handleEdit(item.id, 'intervalMonths', parseInt(e.target.value))} />
+                                                <span>mo</span>
+                                                <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:bg-red-50 p-2 rounded ml-2"><TrashIcon size={16}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // D. AUDIT LOG (List Records)
+        const AuditLog = ({ records, onEdit, onDelete }) => {
+            const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            return (
+                <div className="bg-white rounded-lg shadow-sm p-6 print:shadow-none print:p-0">
+                    <div className="flex justify-between items-center mb-6 print:mb-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">Maintenance Audit Log</h2>
+                            <p className="text-slate-500">2019 Toyota Camry LE • VIN: *****************</p>
+                        </div>
+                        <button onClick={() => window.print()} className="no-print flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700">
+                            <PrinterIcon size={18} /> Print for Warranty
+                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm print:text-xs">
+                            <thead className="bg-slate-100 text-slate-700 print:bg-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3 border-b border-slate-200">Date</th>
+                                    <th className="px-4 py-3 border-b border-slate-200">Odometer</th>
+                                    <th className="px-4 py-3 border-b border-slate-200">Service Performed</th>
+                                    <th className="px-4 py-3 border-b border-slate-200 w-1/3">Parts / Materials</th>
+                                    <th className="px-4 py-3 border-b border-slate-200">SKU / Ref</th>
+                                    <th className="px-4 py-3 border-b border-slate-200 no-print w-24">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {sortedRecords.map((record) => (
+                                    <tr key={record.id} className="hover:bg-slate-50 print:hover:bg-transparent">
+                                        <td className="px-4 py-3 font-medium whitespace-nowrap">{formatDate(record.date)}</td>
+                                        <td className="px-4 py-3 font-mono">{record.mileage.toLocaleString()} mi</td>
+                                        <td className="px-4 py-3 font-semibold text-blue-900 print:text-black">{record.serviceType}</td>
+                                        <td className="px-4 py-3 text-slate-600 print:text-black">{record.parts}</td>
+                                        <td className="px-4 py-3 font-mono text-xs">{record.skuReference || '-'}</td>
+                                        <td className="px-4 py-3 no-print">
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => onEdit(record)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><EditIcon size={16}/></button>
+                                                <button onClick={() => onDelete(record.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete"><TrashIcon size={16}/></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {sortedRecords.length === 0 && (
+                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No service records found.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // E. DASHBOARD (Logic Engine)
+        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule }) => {
+            
+            // Logic: Calculate status for each schedule item
+            const statusItems = useMemo(() => {
+                return schedule.map(item => {
+                    const relevantRecords = records.filter(r => r.serviceType === item.name).sort((a, b) => b.mileage - a.mileage);
+                    const lastService = relevantRecords[0] || { date: '2019-01-01', mileage: 0 };
+                    
+                    const milesDrivenSince = currentOdo - lastService.mileage;
+                    const daysSince = (new Date().getTime() - new Date(lastService.date).getTime()) / (1000 * 3600 * 24);
+                    
+                    const milesRemaining = item.intervalMiles - milesDrivenSince;
+                    const daysRemaining = (item.intervalMonths * 30) - daysSince;
+
+                    let status = 'good';
+                    if (milesRemaining < 0 || daysRemaining < 0) status = 'overdue';
+                    else if (milesRemaining < 1000 || daysRemaining < 30) status = 'due';
+
+                    const daysUntilMileLimit = milesRemaining / EST_DAILY_MILEAGE;
+                    const projectedDateByMiles = new Date();
+                    projectedDateByMiles.setDate(projectedDateByMiles.getDate() + daysUntilMileLimit);
+
+                    return { ...item, lastService, status, milesRemaining, projectedDate: projectedDateByMiles };
+                });
+            }, [records, currentOdo, schedule]);
+
+            const [localOdo, setLocalOdo] = useState(currentOdo);
+
+            // Sync local input with prop if prop changes externally
+            useEffect(() => { setLocalOdo(currentOdo) }, [currentOdo]);
+
+            const handleSaveOdo = () => {
+                onUpdateOdo(localOdo);
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800">Current Odometer</h3>
+                            <p className="text-slate-500 text-sm">Update this regularly for accurate estimates (Est. 20k/yr)</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <input 
+                                type="number" 
+                                value={localOdo} 
+                                onChange={(e) => setLocalOdo(parseInt(e.target.value) || 0)} 
+                                className="border border-slate-300 rounded px-3 py-2 text-xl font-mono font-bold w-32" 
+                            />
+                            <button onClick={handleSaveOdo} className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 shadow-sm" title="Save Mileage">
+                                <SaveIcon />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {statusItems.map(item => {
+                            let badgeClass = item.status === 'due' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : item.status === 'overdue' ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200';
+                            let IconComponent = item.status === 'due' ? ClockIcon : item.status === 'overdue' ? AlertTriangleIcon : CheckCircleIcon;
+                            let label = item.status === 'due' ? 'Due Soon' : item.status === 'overdue' ? 'Overdue' : 'Good';
+
+                            return (
+                                <div key={item.id} className="bg-white border border-slate-100 rounded-lg p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <h4 className="font-bold text-slate-700 line-clamp-1 pr-2" title={item.name}>{item.name}</h4>
+                                        <span className={`shrink-0 px-2 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${badgeClass}`}>
+                                            <IconComponent className="w-4 h-4" /> {label}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between text-slate-500"><span>Last:</span><span className="font-medium text-slate-700">{formatDate(item.lastService.date)}</span></div>
+                                        <div className="flex justify-between text-slate-500"><span>Next (Est):</span><span className={`font-medium ${item.status === 'overdue' ? 'text-red-600' : 'text-slate-700'}`}>{formatDate(item.projectedDate.toISOString())}</span></div>
+                                        
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-slate-100 rounded-full h-2 mt-2">
+                                            <div 
+                                                className={`h-2 rounded-full transition-all duration-500 ${item.status === 'good' ? 'bg-green-500' : item.status === 'due' ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                                                style={{ width: `${Math.min(100, Math.max(0, 100 - (item.milesRemaining / item.intervalMiles * 100)))}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="text-xs text-slate-400 text-right">{item.milesRemaining.toLocaleString()} mi remaining</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 6. MAIN APP ORCHESTRATOR ---
+        const App = () => {
+            const { initializeApp } = window.firebaseModules;
+            const { getAuth, signOut, onAuthStateChanged, signInWithCustomToken } = window.firebaseModules.auth;
+            const { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, deleteDoc } = window.firebaseModules.firestore;
+
+            // CONFIGURATION
+            const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyDHEOTsbzOMcFybpHdNLRi94edBOc2eA-s",
+                authDomain: "homemaint-5e4c5.firebaseapp.com",
+                projectId: "homemaint-5e4c5",
+                storageBucket: "homemaint-5e4c5.firebasestorage.app",
+                messagingSenderId: "1026666678068",
+                appId: "1:1026666678068:web:76fad71dc8e855a08bc761"
+            };
+
+            const app = useMemo(() => initializeApp(firebaseConfig), []);
+            const auth = useMemo(() => getAuth(app), [app]);
+            const db = useMemo(() => getFirestore(app), [app]);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'diy-warranty-tracker';
+
+            // STATE
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('dashboard');
+            
+            // Data State
+            const [records, setRecords] = useState([]);
+            const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
+            const [currentOdo, setCurrentOdo] = useState(45000);
+            
+            // Modals
+            const [showServiceForm, setShowServiceForm] = useState(false);
+            const [editingRecord, setEditingRecord] = useState(null);
+            const [showScheduleManager, setShowScheduleManager] = useState(false);
+            
+            const [loading, setLoading] = useState(true);
+
+            // A. Authentication
+            useEffect(() => {
+                const initAuth = async () => {
+                   if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                       await signInWithCustomToken(auth, __initial_auth_token);
+                   }
+                }
+                initAuth();
+
+                const unsub = onAuthStateChanged(auth, u => {
+                    setUser(u);
+                    if (!u) setLoading(false);
+                });
+                return () => unsub();
+            }, [auth]);
+
+            // B. Data Loading (Only when user exists)
+            useEffect(() => {
+                if (!user) { 
+                    setRecords([]); 
+                    return; 
+                }
+
+                // 1. Fetch Records (Realtime)
+                const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'));
+                const unsubRecords = onSnapshot(q, snap => {
+                    const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setRecords(recs);
+                });
+
+                // 2. Fetch User Settings (Odometer) & Schedule
+                // We fetch this once on load, but could be realtime if needed.
+                const loadSettings = async () => {
+                    // Load Odo
+                    const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general');
+                    const settingsSnap = await getDoc(settingsRef);
+                    
+                    if (settingsSnap.exists()) {
+                        setCurrentOdo(settingsSnap.data().currentOdo || 45000);
+                    } else {
+                        // Initialize default
+                        await setDoc(settingsRef, { currentOdo: 45000 });
+                    }
+
+                    // Load Schedule
+                    const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
+                    const schedSnap = await getDoc(schedRef);
+                    if (schedSnap.exists() && schedSnap.data().items) {
+                        setSchedule(schedSnap.data().items);
+                    } else {
+                        // Initialize default if empty
+                        await setDoc(schedRef, { items: DEFAULT_SCHEDULE });
+                    }
+                    
+                    setLoading(false);
+                };
+                
+                loadSettings();
+
+                return () => unsubRecords();
+            }, [user, db, appId]);
+
+            // C. Actions
+            const handleUpdateOdo = async (newOdo) => {
+                setCurrentOdo(newOdo); // Optimistic update
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general'), {
+                        currentOdo: newOdo
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Failed to save odometer", e);
+                    alert("Failed to save odometer to cloud.");
+                }
+            };
+
+            const handleDeleteRecord = async (id) => {
+                if(confirm("Are you sure you want to delete this record? This cannot be undone.")) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', id));
+                    } catch (e) {
+                        alert("Error deleting: " + e.message);
+                    }
+                }
+            };
+
+            const handleEditRecord = (record) => {
+                setEditingRecord(record);
+                setShowServiceForm(true);
+            };
+
+            const handleCloseForm = () => {
+                setShowServiceForm(false);
+                setEditingRecord(null);
+            };
+
+            // RENDER
+            if (loading) return <div className="h-screen flex items-center justify-center text-slate-500">Loading User Data...</div>;
+            if (!user) return <Login setUser={setUser} auth={auth} />;
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
+                    {/* Navigation */}
+                    <nav className="bg-slate-900 text-white shadow-lg no-print">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center gap-3">
+                                    <CarIcon className="text-blue-400" />
+                                    <span className="font-bold text-xl hidden sm:block">DIY Warranty Tracker</span>
+                                    <span className="font-bold text-xl sm:hidden">DIY Tracker</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-slate-400 text-xs hidden md:block">{user.email}</span>
+                                    <button onClick={() => signOut(auth)} className="p-2 hover:bg-slate-800 rounded-full transition" title="Sign Out"><LogOutIcon size={18} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {/* Control Bar */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 no-print">
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <button onClick={() => setView('dashboard')} className={`flex-1 md:flex-none px-4 py-2 rounded-md font-medium transition text-center ${view === 'dashboard' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Dashboard</button>
+                                <button onClick={() => setView('audit')} className={`flex-1 md:flex-none px-4 py-2 rounded-md font-medium transition text-center ${view === 'audit' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Audit Log</button>
+                            </div>
+                            
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <button onClick={() => setShowScheduleManager(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-semibold hover:bg-slate-300 transition">
+                                    <SettingsIcon size={18} /> <span className="hidden sm:inline">Manage</span> Schedule
+                                </button>
+                                <button onClick={() => setShowServiceForm(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition">
+                                    <PlusCircleIcon size={18} /> Log Service
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Views */}
+                        {view === 'dashboard' ? (
+                            <Dashboard 
+                                records={records} 
+                                currentOdo={currentOdo} 
+                                onUpdateOdo={handleUpdateOdo} 
+                                schedule={schedule}
+                            />
+                        ) : (
+                            <AuditLog 
+                                records={records} 
+                                onEdit={handleEditRecord}
+                                onDelete={handleDeleteRecord}
+                            />
+                        )}
+                    </main>
+
+                    {/* Modals */}
+                    {showServiceForm && (
+                        <ServiceForm 
+                            user={user} 
+                            db={db} 
+                            appId={appId} 
+                            schedule={schedule}
+                            initialData={editingRecord}
+                            onClose={handleCloseForm} 
+                            onSuccess={() => {}} 
+                        />
+                    )}
+
+                    {showScheduleManager && (
+                        <ScheduleManager 
+                            user={user}
+                            db={db}
+                            appId={appId}
+                            currentSchedule={schedule}
+                            onClose={() => setShowScheduleManager(false)}
+                            onUpdate={setSchedule}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AppWrapper />);
+    </script>
+</body>
+</html>
