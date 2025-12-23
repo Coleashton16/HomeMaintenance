@@ -15,11 +15,13 @@
     <style>
         @media print {
             .no-print { display: none !important; }
-            body { background: white; }
+            body { background: white; color: black; }
             .print-only { display: block !important; }
             /* Ensure table fits on page */
-            table { width: 100%; font-size: 10pt; }
-            td, th { padding: 4px; }
+            table { width: 100%; font-size: 10pt; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 6px; }
+            /* Hide scrollbars in print */
+            .overflow-x-auto { overflow: visible !important; }
         }
     </style>
 </head>
@@ -65,7 +67,6 @@
     <!-- Main Application Script -->
     <script type="text/babel">
         // --- 1. BOOTSTRAP ---
-        // Waits for Firebase to be ready before mounting the App
         const AppWrapper = () => {
             const [ready, setReady] = React.useState(false);
             
@@ -96,13 +97,13 @@
         const SettingsIcon = (p) => <Icon {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
         const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
         const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
+        const BadgeIcon = (p) => <Icon {...p}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78"/></Icon>;
 
-        // --- 3. DEFAULTS & CONFIG ---
-        const { useState, useEffect, useMemo } = React;
+        // --- 3. CONFIG ---
+        const { useState, useEffect, useMemo, useCallback } = React;
         const EST_YEARLY_MILEAGE = 20000;
         const EST_DAILY_MILEAGE = EST_YEARLY_MILEAGE / 365;
 
-        // Default "Factory" Schedule
         const DEFAULT_SCHEDULE = [
             { id: 'oil', name: 'Engine Oil & Filter (0W-16)', intervalMiles: 10000, intervalMonths: 12 },
             { id: 'rotate', name: 'Tire Rotation', intervalMiles: 5000, intervalMonths: 6 },
@@ -114,15 +115,14 @@
             { id: 'brake_fluid', name: 'Brake Fluid Flush', intervalMiles: 30000, intervalMonths: 36 },
         ];
 
-        // --- 4. UTILITY FUNCTIONS ---
         const formatDate = (dateString) => {
             if (!dateString) return 'N/A';
             return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         };
 
-        // --- 5. COMPONENTS ---
+        // --- 4. COMPONENTS ---
 
-        // A. LOGIN COMPONENT
+        // A. LOGIN
         const Login = ({ setUser, auth }) => {
             const [isRegistering, setIsRegistering] = useState(false);
             const [email, setEmail] = useState('');
@@ -153,7 +153,7 @@
                             </div>
                         </div>
                         <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">DIY Warranty Tracker</h1>
-                        <p className="text-center text-slate-500 mb-6">Toyota Camry 2019 LE</p>
+                        <p className="text-center text-slate-500 mb-6">Secure Cloud Maintenance Log</p>
                         
                         {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
 
@@ -178,13 +178,11 @@
             );
         };
 
-        // B. SERVICE FORM (Add & Edit)
+        // B. SERVICE FORM
         const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
             const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
             
-            // If initialData exists, we are in EDIT mode
             const isEditMode = !!initialData;
-
             const [formData, setFormData] = useState(initialData || {
                 date: new Date().toISOString().split('T')[0],
                 mileage: '',
@@ -202,15 +200,13 @@
                     const dataPayload = {
                         ...formData,
                         mileage: Number(formData.mileage),
-                        timestamp: serverTimestamp() // Update timestamp on edit? Maybe keep original? For audit, update is safer.
+                        timestamp: serverTimestamp() 
                     };
 
                     if (isEditMode) {
-                        // UPDATE existing doc
                         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id);
                         await updateDoc(docRef, dataPayload);
                     } else {
-                        // CREATE new doc
                         await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
                     }
                     onSuccess();
@@ -277,45 +273,50 @@
             );
         };
 
-        // C. SCHEDULE MANAGER (Add/Edit Custom Items)
+        // C. SCHEDULE MANAGER
         const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
             const { setDoc, doc } = window.firebaseModules.firestore;
             const [items, setItems] = useState(currentSchedule);
             const [newItem, setNewItem] = useState({ name: '', intervalMiles: 5000, intervalMonths: 6 });
+            const [isSaving, setIsSaving] = useState(false);
 
-            const saveSchedule = async (newItems) => {
+            const persistToCloud = async (updatedItems) => {
+                setIsSaving(true);
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule'), {
-                        items: newItems
+                        items: updatedItems
                     });
-                    setItems(newItems);
-                    onUpdate(newItems);
+                    onUpdate(updatedItems);
                 } catch (e) {
                     console.error(e);
-                    alert("Failed to save schedule");
+                    alert("Failed to sync to cloud. Check connection.");
+                } finally {
+                    setIsSaving(false);
                 }
             };
 
             const handleAdd = () => {
                 if (!newItem.name) return;
                 const updated = [...items, { ...newItem, id: Date.now().toString() }];
-                saveSchedule(updated);
+                setItems(updated);
+                persistToCloud(updated);
                 setNewItem({ name: '', intervalMiles: 5000, intervalMonths: 6 });
             };
 
             const handleDelete = (id) => {
                 if(!confirm("Delete this maintenance item?")) return;
                 const updated = items.filter(i => i.id !== id);
-                saveSchedule(updated);
+                setItems(updated);
+                persistToCloud(updated);
             };
 
-            const handleEdit = (id, field, value) => {
+            const handleLocalChange = (id, field, value) => {
                 const updated = items.map(i => i.id === id ? { ...i, [field]: value } : i);
-                // Don't save on every keystroke, users must click "Save All" or we use a debounced save in a real app. 
-                // For simplicity here, we update state locally and add a manual save, or update immediately.
-                // Let's update state only, then provide a Save button for edits to existing rows? 
-                // Simpler: Just update state and save immediately for this "html style" app to ensure persistence.
-                saveSchedule(updated);
+                setItems(updated);
+            };
+
+            const handleBlurSave = () => {
+                persistToCloud(items);
             };
 
             return (
@@ -340,17 +341,37 @@
 
                             {/* List */}
                             <div>
-                                <h3 className="font-bold text-sm text-slate-700 mb-2 uppercase">Current Schedule</h3>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="font-bold text-sm text-slate-700 uppercase">Current Schedule</h3>
+                                    {isSaving && <span className="text-xs text-blue-600 font-bold animate-pulse">Syncing to cloud...</span>}
+                                </div>
                                 <div className="space-y-2">
                                     {items.map(item => (
                                         <div key={item.id} className="flex flex-col md:flex-row items-center gap-2 p-3 border rounded hover:bg-slate-50">
-                                            <input className="font-bold text-slate-800 bg-transparent border-none focus:bg-white flex-grow w-full" value={item.name} onChange={(e) => handleEdit(item.id, 'name', e.target.value)} />
+                                            <input 
+                                                className="font-bold text-slate-800 bg-transparent border-none focus:bg-white flex-grow w-full focus:ring-2 ring-blue-200 rounded px-1" 
+                                                value={item.name} 
+                                                onChange={(e) => handleLocalChange(item.id, 'name', e.target.value)} 
+                                                onBlur={handleBlurSave}
+                                            />
                                             <div className="flex items-center gap-2 text-sm text-slate-500">
                                                 <span>Every</span>
-                                                <input type="number" className="w-20 border rounded p-1 text-center" value={item.intervalMiles} onChange={(e) => handleEdit(item.id, 'intervalMiles', parseInt(e.target.value))} />
+                                                <input 
+                                                    type="number" 
+                                                    className="w-20 border rounded p-1 text-center" 
+                                                    value={item.intervalMiles} 
+                                                    onChange={(e) => handleLocalChange(item.id, 'intervalMiles', parseInt(e.target.value))} 
+                                                    onBlur={handleBlurSave}
+                                                />
                                                 <span>mi</span>
                                                 <span>/</span>
-                                                <input type="number" className="w-16 border rounded p-1 text-center" value={item.intervalMonths} onChange={(e) => handleEdit(item.id, 'intervalMonths', parseInt(e.target.value))} />
+                                                <input 
+                                                    type="number" 
+                                                    className="w-16 border rounded p-1 text-center" 
+                                                    value={item.intervalMonths} 
+                                                    onChange={(e) => handleLocalChange(item.id, 'intervalMonths', parseInt(e.target.value))} 
+                                                    onBlur={handleBlurSave}
+                                                />
                                                 <span>mo</span>
                                                 <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:bg-red-50 p-2 rounded ml-2"><TrashIcon size={16}/></button>
                                             </div>
@@ -364,19 +385,90 @@
             );
         };
 
-        // D. AUDIT LOG (List Records)
-        const AuditLog = ({ records, onEdit, onDelete }) => {
+        // D. VEHICLE PROFILE MANAGER (New)
+        const VehicleProfileModal = ({ user, db, appId, currentProfile, onClose, onUpdate }) => {
+            const { setDoc, doc } = window.firebaseModules.firestore;
+            const [profile, setProfile] = useState(currentProfile || {
+                ownerName: '',
+                yearMakeModel: '2019 Toyota Camry LE',
+                vin: '',
+                licensePlate: '',
+                registrationNumber: ''
+            });
+            const [isSaving, setIsSaving] = useState(false);
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                setIsSaving(true);
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile'), profile);
+                    onUpdate(profile);
+                    onClose();
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to save profile");
+                } finally {
+                    setIsSaving(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                         <div className="bg-slate-800 p-4 flex justify-between items-center text-white shrink-0">
+                            <h2 className="font-bold text-lg">Vehicle Ownership Profile</h2>
+                            <button onClick={onClose} className="hover:text-slate-300"><LogOutIcon size={20} className="rotate-180" /></button>
+                        </div>
+                        <form onSubmit={handleSave} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Owner Full Name</label>
+                                <input required className="w-full border p-2 rounded mt-1" value={profile.ownerName} onChange={e => setProfile({...profile, ownerName: e.target.value})} placeholder="e.g. John Doe" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">Year / Make / Model</label>
+                                <input required className="w-full border p-2 rounded mt-1" value={profile.yearMakeModel} onChange={e => setProfile({...profile, yearMakeModel: e.target.value})} placeholder="e.g. 2019 Toyota Camry LE" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">VIN (Vehicle Identification Number)</label>
+                                <input required className="w-full border p-2 rounded mt-1 font-mono uppercase" value={profile.vin} onChange={e => setProfile({...profile, vin: e.target.value})} placeholder="e.g. 4T1B11HK8KU..." />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase">License Plate</label>
+                                    <input className="w-full border p-2 rounded mt-1 uppercase" value={profile.licensePlate} onChange={e => setProfile({...profile, licensePlate: e.target.value})} placeholder="e.g. ABC-1234" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase">Registration #</label>
+                                    <input className="w-full border p-2 rounded mt-1" value={profile.registrationNumber} onChange={e => setProfile({...profile, registrationNumber: e.target.value})} placeholder="Optional" />
+                                </div>
+                            </div>
+                            <button type="submit" disabled={isSaving} className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">
+                                {isSaving ? 'Saving...' : 'Save Profile'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )
+        };
+
+
+        // E. AUDIT LOG (Updated)
+        const AuditLog = ({ records, vehicleProfile, onEdit, onDelete }) => {
             const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
             return (
                 <div className="bg-white rounded-lg shadow-sm p-6 print:shadow-none print:p-0">
-                    <div className="flex justify-between items-center mb-6 print:mb-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 print:mb-4 border-b pb-4 print:border-b-2 print:border-black">
                         <div>
                             <h2 className="text-2xl font-bold text-slate-800">Maintenance Audit Log</h2>
-                            <p className="text-slate-500">2019 Toyota Camry LE • VIN: *****************</p>
+                            <div className="text-slate-600 text-sm mt-2 space-y-1">
+                                <p><span className="font-bold">Vehicle:</span> {vehicleProfile.yearMakeModel || 'Not Set'}</p>
+                                <p><span className="font-bold">VIN:</span> {vehicleProfile.vin || 'Not Set'} &bull; <span className="font-bold">Plate:</span> {vehicleProfile.licensePlate || 'N/A'}</p>
+                                <p><span className="font-bold">Owner:</span> {vehicleProfile.ownerName || 'Not Set'} &bull; <span className="font-bold">Reg:</span> {vehicleProfile.registrationNumber || 'N/A'}</p>
+                            </div>
                         </div>
-                        <button onClick={() => window.print()} className="no-print flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700">
-                            <PrinterIcon size={18} /> Print for Warranty
+                        <button onClick={() => window.print()} className="no-print mt-4 md:mt-0 flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700">
+                            <PrinterIcon size={18} /> Print Official Log
                         </button>
                     </div>
 
@@ -418,10 +510,13 @@
             );
         };
 
-        // E. DASHBOARD (Logic Engine)
-        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule }) => {
-            
-            // Logic: Calculate status for each schedule item
+        // F. DASHBOARD (Logic Engine)
+        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName }) => {
+            const [localOdo, setLocalOdo] = useState(currentOdo);
+            const [isSavingOdo, setIsSavingOdo] = useState(false);
+
+            useEffect(() => { setLocalOdo(currentOdo) }, [currentOdo]);
+
             const statusItems = useMemo(() => {
                 return schedule.map(item => {
                     const relevantRecords = records.filter(r => r.serviceType === item.name).sort((a, b) => b.mileage - a.mileage);
@@ -445,32 +540,41 @@
                 });
             }, [records, currentOdo, schedule]);
 
-            const [localOdo, setLocalOdo] = useState(currentOdo);
+            const handleOdoSave = async () => {
+                if(localOdo === currentOdo) return;
+                setIsSavingOdo(true);
+                await onUpdateOdo(localOdo);
+                setIsSavingOdo(false);
+            };
 
-            // Sync local input with prop if prop changes externally
-            useEffect(() => { setLocalOdo(currentOdo) }, [currentOdo]);
-
-            const handleSaveOdo = () => {
-                onUpdateOdo(localOdo);
-            }
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur(); // Triggers onBlur
+                }
+            };
 
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                         <div>
                             <h3 className="text-lg font-bold text-slate-800">Current Odometer</h3>
-                            <p className="text-slate-500 text-sm">Update this regularly for accurate estimates (Est. 20k/yr)</p>
+                            <p className="text-slate-500 text-sm">Status for: <span className="font-semibold">{vehicleName || 'Your Vehicle'}</span></p>
                         </div>
-                        <div className="flex gap-2">
-                            <input 
-                                type="number" 
-                                value={localOdo} 
-                                onChange={(e) => setLocalOdo(parseInt(e.target.value) || 0)} 
-                                className="border border-slate-300 rounded px-3 py-2 text-xl font-mono font-bold w-32" 
-                            />
-                            <button onClick={handleSaveOdo} className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 shadow-sm" title="Save Mileage">
-                                <SaveIcon />
-                            </button>
+                        <div className="flex flex-col items-end gap-1">
+                            <div className="flex gap-2">
+                                <input 
+                                    type="number" 
+                                    value={localOdo} 
+                                    onChange={(e) => setLocalOdo(parseInt(e.target.value) || 0)} 
+                                    onBlur={handleOdoSave}
+                                    onKeyDown={handleKeyDown}
+                                    className="border border-slate-300 rounded px-3 py-2 text-xl font-mono font-bold w-32 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                                />
+                                <div className="flex items-center justify-center w-10 h-11 bg-slate-100 rounded text-slate-500">
+                                    {isSavingOdo ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> : <SaveIcon size={20} />}
+                                </div>
+                            </div>
+                            {isSavingOdo && <span className="text-xs text-blue-600 font-bold">Saving to Cloud...</span>}
                         </div>
                     </div>
 
@@ -492,7 +596,6 @@
                                         <div className="flex justify-between text-slate-500"><span>Last:</span><span className="font-medium text-slate-700">{formatDate(item.lastService.date)}</span></div>
                                         <div className="flex justify-between text-slate-500"><span>Next (Est):</span><span className={`font-medium ${item.status === 'overdue' ? 'text-red-600' : 'text-slate-700'}`}>{formatDate(item.projectedDate.toISOString())}</span></div>
                                         
-                                        {/* Progress Bar */}
                                         <div className="w-full bg-slate-100 rounded-full h-2 mt-2">
                                             <div 
                                                 className={`h-2 rounded-full transition-all duration-500 ${item.status === 'good' ? 'bg-green-500' : item.status === 'due' ? 'bg-yellow-500' : 'bg-red-500'}`} 
@@ -540,11 +643,19 @@
             const [records, setRecords] = useState([]);
             const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
             const [currentOdo, setCurrentOdo] = useState(45000);
+            const [vehicleProfile, setVehicleProfile] = useState({
+                ownerName: '',
+                yearMakeModel: '2019 Toyota Camry LE',
+                vin: '',
+                licensePlate: '',
+                registrationNumber: ''
+            });
             
             // Modals
             const [showServiceForm, setShowServiceForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
             const [showScheduleManager, setShowScheduleManager] = useState(false);
+            const [showVehicleModal, setShowVehicleModal] = useState(false);
             
             const [loading, setLoading] = useState(true);
 
@@ -564,47 +675,48 @@
                 return () => unsub();
             }, [auth]);
 
-            // B. Data Loading (Only when user exists)
+            // B. Data Loading
             useEffect(() => {
                 if (!user) { 
                     setRecords([]); 
                     return; 
                 }
 
-                // 1. Fetch Records (Realtime)
                 const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'));
                 const unsubRecords = onSnapshot(q, snap => {
                     const recs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     setRecords(recs);
                 });
 
-                // 2. Fetch User Settings (Odometer) & Schedule
-                // We fetch this once on load, but could be realtime if needed.
                 const loadSettings = async () => {
-                    // Load Odo
+                    // Odo
                     const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general');
                     const settingsSnap = await getDoc(settingsRef);
-                    
                     if (settingsSnap.exists()) {
                         setCurrentOdo(settingsSnap.data().currentOdo || 45000);
                     } else {
-                        // Initialize default
                         await setDoc(settingsRef, { currentOdo: 45000 });
                     }
 
-                    // Load Schedule
+                    // Schedule
                     const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
                     const schedSnap = await getDoc(schedRef);
                     if (schedSnap.exists() && schedSnap.data().items) {
                         setSchedule(schedSnap.data().items);
                     } else {
-                        // Initialize default if empty
                         await setDoc(schedRef, { items: DEFAULT_SCHEDULE });
                     }
-                    
+
+                    // Vehicle Profile
+                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile');
+                    const profileSnap = await getDoc(profileRef);
+                    if (profileSnap.exists()) {
+                        setVehicleProfile(profileSnap.data());
+                    } 
+                    // No else needed, we have default state
+
                     setLoading(false);
                 };
-                
                 loadSettings();
 
                 return () => unsubRecords();
@@ -612,7 +724,7 @@
 
             // C. Actions
             const handleUpdateOdo = async (newOdo) => {
-                setCurrentOdo(newOdo); // Optimistic update
+                setCurrentOdo(newOdo); // Optimistic UI update
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general'), {
                         currentOdo: newOdo
@@ -649,7 +761,6 @@
 
             return (
                 <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-                    {/* Navigation */}
                     <nav className="bg-slate-900 text-white shadow-lg no-print">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex items-center justify-between h-16">
@@ -667,14 +778,16 @@
                     </nav>
 
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {/* Control Bar */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 no-print">
                             <div className="flex gap-2 w-full md:w-auto">
                                 <button onClick={() => setView('dashboard')} className={`flex-1 md:flex-none px-4 py-2 rounded-md font-medium transition text-center ${view === 'dashboard' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Dashboard</button>
                                 <button onClick={() => setView('audit')} className={`flex-1 md:flex-none px-4 py-2 rounded-md font-medium transition text-center ${view === 'audit' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Audit Log</button>
                             </div>
                             
-                            <div className="flex gap-2 w-full md:w-auto">
+                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                                <button onClick={() => setShowVehicleModal(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-semibold hover:bg-slate-300 transition">
+                                    <BadgeIcon size={18} /> <span className="hidden sm:inline">Car</span> Profile
+                                </button>
                                 <button onClick={() => setShowScheduleManager(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-semibold hover:bg-slate-300 transition">
                                     <SettingsIcon size={18} /> <span className="hidden sm:inline">Manage</span> Schedule
                                 </button>
@@ -684,24 +797,24 @@
                             </div>
                         </div>
 
-                        {/* Views */}
                         {view === 'dashboard' ? (
                             <Dashboard 
                                 records={records} 
                                 currentOdo={currentOdo} 
                                 onUpdateOdo={handleUpdateOdo} 
                                 schedule={schedule}
+                                vehicleName={vehicleProfile.yearMakeModel}
                             />
                         ) : (
                             <AuditLog 
                                 records={records} 
+                                vehicleProfile={vehicleProfile}
                                 onEdit={handleEditRecord}
                                 onDelete={handleDeleteRecord}
                             />
                         )}
                     </main>
 
-                    {/* Modals */}
                     {showServiceForm && (
                         <ServiceForm 
                             user={user} 
@@ -722,6 +835,17 @@
                             currentSchedule={schedule}
                             onClose={() => setShowScheduleManager(false)}
                             onUpdate={setSchedule}
+                        />
+                    )}
+
+                    {showVehicleModal && (
+                        <VehicleProfileModal 
+                            user={user}
+                            db={db}
+                            appId={appId}
+                            currentProfile={vehicleProfile}
+                            onClose={() => setShowVehicleModal(false)}
+                            onUpdate={setVehicleProfile}
                         />
                     )}
                 </div>
