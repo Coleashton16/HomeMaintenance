@@ -98,6 +98,7 @@
         const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
         const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
         const BadgeIcon = (p) => <Icon {...p}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78"/></Icon>;
+        const LayersIcon = (p) => <Icon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Icon>;
 
         // --- 3. CONFIG ---
         const { useState, useEffect, useMemo, useCallback } = React;
@@ -178,37 +179,106 @@
             );
         };
 
-        // B. SERVICE FORM
+        // B. SERVICE FORM (Enhanced with Multi-Service Mode)
         const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
             const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
             
             const isEditMode = !!initialData;
-            const [formData, setFormData] = useState(initialData || {
-                date: new Date().toISOString().split('T')[0],
-                mileage: '',
-                serviceType: schedule.length > 0 ? schedule[0].name : 'Oil Change',
-                parts: '',
-                notes: '',
-                skuReference: ''
+            
+            // Mode toggle: 'single' or 'multi'
+            const [mode, setMode] = useState(isEditMode ? 'single' : 'single');
+
+            // Shared State
+            const [commonData, setCommonData] = useState({
+                date: initialData?.date || new Date().toISOString().split('T')[0],
+                mileage: initialData?.mileage || '',
+                notes: initialData?.notes || ''
             });
+
+            // Single Mode State
+            const [singleData, setSingleData] = useState({
+                serviceType: initialData?.serviceType || (schedule.length > 0 ? schedule[0].name : 'Oil Change'),
+                parts: initialData?.parts || '',
+                skuReference: initialData?.skuReference || ''
+            });
+
+            // Multi Mode State
+            // Stores selected services. Structure: { 'Oil Change': { parts: '', sku: '' } }
+            const [multiSelection, setMultiSelection] = useState({});
+            const [otherServiceName, setOtherServiceName] = useState('');
+
             const [isSubmitting, setIsSubmitting] = useState(false);
+
+            // Toggle Multi-Selection
+            const toggleService = (serviceName) => {
+                setMultiSelection(prev => {
+                    const newState = { ...prev };
+                    if (newState[serviceName]) {
+                        delete newState[serviceName];
+                    } else {
+                        newState[serviceName] = { parts: '', sku: '' };
+                    }
+                    return newState;
+                });
+            };
+
+            const updateMultiDetails = (serviceName, field, value) => {
+                setMultiSelection(prev => ({
+                    ...prev,
+                    [serviceName]: {
+                        ...prev[serviceName],
+                        [field]: value
+                    }
+                }));
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setIsSubmitting(true);
+                
                 try {
-                    const dataPayload = {
-                        ...formData,
-                        mileage: Number(formData.mileage),
-                        timestamp: serverTimestamp() 
+                    const timestamp = serverTimestamp();
+                    const basePayload = {
+                        date: commonData.date,
+                        mileage: Number(commonData.mileage),
+                        timestamp
                     };
 
-                    if (isEditMode) {
-                        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id);
-                        await updateDoc(docRef, dataPayload);
+                    if (mode === 'single') {
+                         // Standard Single Record Save
+                        const dataPayload = {
+                            ...basePayload,
+                            serviceType: singleData.serviceType,
+                            parts: singleData.parts,
+                            skuReference: singleData.skuReference,
+                            notes: commonData.notes
+                        };
+
+                        if (isEditMode) {
+                            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id);
+                            await updateDoc(docRef, dataPayload);
+                        } else {
+                            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
+                        }
+
                     } else {
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
+                        // Multi-Record Batch Save
+                        const promises = Object.entries(multiSelection).map(([name, details]) => {
+                             // If name is "Other", use the custom name
+                             const finalName = name === 'Other' ? (otherServiceName || 'Other Service') : name;
+                             
+                             return addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), {
+                                ...basePayload,
+                                serviceType: finalName,
+                                parts: details.parts,
+                                skuReference: details.sku,
+                                notes: commonData.notes // Shared notes for all
+                             });
+                        });
+
+                        await Promise.all(promises);
                     }
+
                     onSuccess();
                     onClose();
                 } catch (error) {
@@ -221,50 +291,163 @@
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        {/* Header */}
                         <div className="bg-blue-600 p-4 flex justify-between items-center shrink-0">
-                            <h2 className="text-white font-bold text-lg">{isEditMode ? 'Edit Service Record' : 'Log New Service'}</h2>
+                            <h2 className="text-white font-bold text-lg">
+                                {isEditMode ? 'Edit Service Record' : (mode === 'multi' ? 'Log Multiple Services' : 'Log New Service')}
+                            </h2>
                             <button onClick={onClose} className="text-blue-100 hover:text-white"><LogOutIcon size={20} className="rotate-180" /></button>
                         </div>
                         
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+                            
+                            {/* 1. Shared Info */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase">Date</label>
-                                    <input type="date" required className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                                    <input type="date" required className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={commonData.date} onChange={e => setCommonData({...commonData, date: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase">Mileage</label>
-                                    <input type="number" required placeholder="e.g., 45020" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.mileage} onChange={e => setFormData({...formData, mileage: e.target.value})} />
+                                    <input type="number" required placeholder="e.g., 45020" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={commonData.mileage} onChange={e => setCommonData({...commonData, mileage: e.target.value})} />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label>
-                                <select className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.serviceType} onChange={e => setFormData({...formData, serviceType: e.target.value})}>
-                                    {schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}
-                                    <option value="Other">Other / Repair</option>
-                                </select>
-                            </div>
+                            {/* Mode Toggle (Only for New Records) */}
+                            {!isEditMode && (
+                                <div className="flex justify-center border-b border-slate-200 pb-4">
+                                    <div className="bg-slate-100 p-1 rounded-lg flex gap-1">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setMode('single')} 
+                                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${mode === 'single' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            Single Service
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setMode('multi')} 
+                                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-1 ${mode === 'multi' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            <LayersIcon size={14} /> Multi-Select
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase">Parts Used</label>
-                                <textarea required placeholder="e.g., Toyota OEM 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 h-20" value={formData.parts} onChange={e => setFormData({...formData, parts: e.target.value})} />
-                            </div>
+                            {/* SINGLE MODE UI */}
+                            {mode === 'single' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label>
+                                        <select className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={singleData.serviceType} onChange={e => setSingleData({...singleData, serviceType: e.target.value})}>
+                                            {schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}
+                                            <option value="Other">Other / Repair</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase">Parts Used</label>
+                                        <textarea placeholder="e.g., Toyota OEM 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 h-20" value={singleData.parts} onChange={e => setSingleData({...singleData, parts: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase">SKU / Part Number Ref</label>
+                                        <input type="text" placeholder="e.g. #INV-2023-001 or 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 font-mono" value={singleData.skuReference} onChange={e => setSingleData({...singleData, skuReference: e.target.value})} />
+                                    </div>
+                                </div>
+                            )}
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase">SKU / Part Number Ref</label>
-                                <input type="text" placeholder="e.g. #INV-2023-001 or 04152-YZZA1" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1 font-mono" value={formData.skuReference} onChange={e => setFormData({...formData, skuReference: e.target.value})} />
-                            </div>
+                            {/* MULTI MODE UI */}
+                            {mode === 'multi' && (
+                                <div className="space-y-6">
+                                    {/* Selection Grid */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Select Services Performed</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {schedule.map(item => {
+                                                const isSelected = !!multiSelection[item.name];
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => toggleService(item.name)}
+                                                        className={`px-3 py-2 rounded-full border text-sm font-medium transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}
+                                                    >
+                                                        {item.name}
+                                                    </button>
+                                                );
+                                            })}
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleService('Other')}
+                                                className={`px-3 py-2 rounded-full border text-sm font-medium transition-all ${multiSelection['Other'] ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}
+                                            >
+                                                Other / Repair
+                                            </button>
+                                        </div>
+                                    </div>
 
-                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase">Notes</label>
-                                <input type="text" placeholder="Any issues found?" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                                    {/* Dynamic Forms for Selected */}
+                                    {Object.keys(multiSelection).length > 0 && (
+                                        <div className="space-y-4 border-t border-slate-200 pt-4">
+                                            <h3 className="font-bold text-sm text-slate-700 uppercase">Details for Selected Services</h3>
+                                            
+                                            {Object.keys(multiSelection).map(serviceName => (
+                                                <div key={serviceName} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <h4 className="font-bold text-blue-800">{serviceName}</h4>
+                                                        <button type="button" onClick={() => toggleService(serviceName)} className="text-xs text-red-500 hover:underline">Remove</button>
+                                                    </div>
+                                                    
+                                                    {serviceName === 'Other' && (
+                                                        <div className="mb-2">
+                                                            <input 
+                                                                className="w-full text-sm border p-1.5 rounded" 
+                                                                placeholder="Enter Service Name..." 
+                                                                value={otherServiceName} 
+                                                                onChange={e => setOtherServiceName(e.target.value)} 
+                                                                required
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <input 
+                                                            className="text-sm border p-1.5 rounded" 
+                                                            placeholder="Parts Used (Optional)" 
+                                                            value={multiSelection[serviceName].parts} 
+                                                            onChange={e => updateMultiDetails(serviceName, 'parts', e.target.value)}
+                                                        />
+                                                        <input 
+                                                            className="text-sm border p-1.5 rounded font-mono" 
+                                                            placeholder="SKU / Ref (Optional)" 
+                                                            value={multiSelection[serviceName].sku} 
+                                                            onChange={e => updateMultiDetails(serviceName, 'sku', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {Object.keys(multiSelection).length === 0 && (
+                                        <p className="text-center text-slate-400 text-sm italic py-4">Select at least one service above to proceed.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Shared Notes (Bottom) */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase">General Notes</label>
+                                <input type="text" placeholder="Any issues found? (Applied to all selected)" className="w-full border-slate-300 rounded-md shadow-sm border p-2 mt-1" value={commonData.notes} onChange={e => setCommonData({...commonData, notes: e.target.value})} />
                             </div>
 
                             <div className="pt-4 shrink-0">
-                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition disabled:opacity-50">
-                                    {isSubmitting ? 'Saving...' : 'Save Record'}
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting || (mode === 'multi' && Object.keys(multiSelection).length === 0)} 
+                                    className="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Saving...' : (mode === 'multi' ? `Save ${Object.keys(multiSelection).length} Records` : 'Save Record')}
                                 </button>
                             </div>
                         </form>
