@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIY Warranty Tracker</title>
+    <title>Home Tracker Maintenance System HMTS</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM -->
@@ -70,16 +70,30 @@
     <script type="text/babel">
         // --- 1. BOOTSTRAP ---
         const AppWrapper = () => {
-            const [ready, setReady] = React.useState(false);
+            // Check immediately if modules are available to avoid unnecessary wait
+            const [ready, setReady] = React.useState(!!window.firebaseModules);
+            const [error, setError] = React.useState(false);
             
             React.useEffect(() => {
                 if (window.firebaseModules) {
                     setReady(true);
                 } else {
-                    window.addEventListener('firebase-ready', () => setReady(true));
+                    const handler = () => setReady(true);
+                    window.addEventListener('firebase-ready', handler);
+                    
+                    // Fallback timeout in case scripts fail to load
+                    const timeout = setTimeout(() => {
+                        if (!window.firebaseModules) setError(true);
+                    }, 5000);
+
+                    return () => {
+                        window.removeEventListener('firebase-ready', handler);
+                        clearTimeout(timeout);
+                    };
                 }
             }, []);
 
+            if (error) return <div className="h-screen flex items-center justify-center text-red-500 font-medium p-4 text-center">Error: Firebase libraries failed to load.<br/>Check your internet connection or ad-blockers.</div>;
             if (!ready) return <div className="h-screen flex items-center justify-center text-slate-500 font-medium">Loading Application...</div>;
             return <App />;
         };
@@ -232,10 +246,6 @@
             );
         };
 
-        // ... [ServiceForm component remains unchanged, use from previous snippet] ...
-        // To save space, assuming ServiceForm, ScheduleManager, VehicleProfileModal are same as previous version.
-        // I will re-include them fully for the "file generation" requirement to be safe.
-
         // B. SERVICE FORM
         const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
             const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
@@ -346,7 +356,6 @@
         };
 
         // C. SCHEDULE MANAGER & D. VEHICLE PROFILE
-        // (Simplified for brevity, but functional)
         const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
             const { setDoc, doc } = window.firebaseModules.firestore;
             const [items, setItems] = useState(currentSchedule);
@@ -394,14 +403,13 @@
             );
         };
 
-        // G. SHARE ACCESS MODAL (New)
+        // G. SHARE ACCESS MODAL
         const ShareAccessModal = ({ user, db, appId, currentData, onClose }) => {
             const { setDoc, doc, collection, query, where, onSnapshot, deleteDoc, getDocs } = window.firebaseModules.firestore;
-            const [duration, setDuration] = useState(24 * 60 * 60 * 1000); // 24 hours default
+            const [duration, setDuration] = useState(24 * 60 * 60 * 1000); 
             const [generatedCode, setGeneratedCode] = useState('');
             const [activeCodes, setActiveCodes] = useState([]);
 
-            // Load existing codes
             useEffect(() => {
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'guestCodes'), where('ownerUid', '==', user.uid));
                 const unsub = onSnapshot(q, snap => {
@@ -411,7 +419,6 @@
             }, [user, db, appId]);
 
             const generateCode = async () => {
-                // 1. Create a snapshot of current data
                 const snapshotData = {
                     profile: currentData.profile,
                     schedule: currentData.schedule,
@@ -421,11 +428,7 @@
                     createdAt: Date.now(),
                     expiresAt: Date.now() + duration
                 };
-
-                // 2. Generate random 6-char code
                 const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-                // 3. Save to Public collection
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code), snapshotData);
                     setGeneratedCode(code);
@@ -448,8 +451,6 @@
                             <button onClick={onClose} className="hover:text-indigo-200">Close</button>
                         </div>
                         <div className="p-6 space-y-6">
-                            
-                            {/* Generator */}
                             <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                                 <h3 className="font-bold text-indigo-900 mb-2">Generate New Code</h3>
                                 <p className="text-xs text-indigo-700 mb-3">Create a read-only snapshot for mechanics or buyers.</p>
@@ -470,8 +471,6 @@
                                     </div>
                                 )}
                             </div>
-
-                            {/* Active Codes List */}
                             <div>
                                 <h3 className="font-bold text-slate-700 mb-2 border-b pb-1">Active Codes</h3>
                                 <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -480,19 +479,13 @@
                                         const isExpired = Date.now() > c.expiresAt;
                                         return (
                                             <div key={c.id} className="flex justify-between items-center text-sm p-2 border rounded bg-slate-50">
-                                                <div>
-                                                    <span className="font-mono font-bold block">{c.id}</span>
-                                                    <span className={`text-xs ${isExpired ? 'text-red-500' : 'text-slate-500'}`}>
-                                                        {isExpired ? 'Expired' : `Expires: ${new Date(c.expiresAt).toLocaleDateString()} ${new Date(c.expiresAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`}
-                                                    </span>
-                                                </div>
+                                                <div><span className="font-mono font-bold block">{c.id}</span><span className={`text-xs ${isExpired ? 'text-red-500' : 'text-slate-500'}`}>{isExpired ? 'Expired' : `Expires: ${new Date(c.expiresAt).toLocaleDateString()} ${new Date(c.expiresAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`}</span></div>
                                                 <button onClick={() => revokeCode(c.id)} className="text-red-500 hover:text-red-700 text-xs border border-red-200 px-2 py-1 rounded bg-white">Revoke</button>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -609,7 +602,7 @@
         // --- 6. MAIN APP ORCHESTRATOR ---
         const App = () => {
             const { initializeApp } = window.firebaseModules;
-            const { getAuth, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } = window.firebaseModules.auth;
+            const { getAuth, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, signInWithEmailAndPassword } = window.firebaseModules.auth;
             const { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, deleteDoc } = window.firebaseModules.firestore;
 
             // CONFIGURATION
@@ -666,7 +659,17 @@
 
             // Data Loading (Real User)
             useEffect(() => {
-                if (!user || isGuest) { if (!isGuest) setRecords([]); return; }
+                // Modified: explicit check for the guest account email to prevent overwriting guest data
+                if (!user || isGuest || user.email === 'openaccess@open.com') { 
+                    if (!isGuest && user?.email !== 'openaccess@open.com') {
+                        setRecords([]); 
+                    }
+                    // FIX: Ensure loading stops if we skip data loading for specific accounts
+                    if (user && !isGuest) setLoading(false); 
+                    return; 
+                }
+                
+                setLoading(true); // Ensure loading is true when starting fetch
 
                 const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'));
                 const unsubRecords = onSnapshot(q, snap => {
@@ -674,54 +677,72 @@
                 });
 
                 const loadSettings = async () => {
-                    const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general');
-                    const settingsSnap = await getDoc(settingsRef);
-                    if (settingsSnap.exists()) setCurrentOdo(settingsSnap.data().currentOdo || 45000);
-                    else await setDoc(settingsRef, { currentOdo: 45000 });
+                    try {
+                        const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general');
+                        const settingsSnap = await getDoc(settingsRef);
+                        if (settingsSnap.exists()) setCurrentOdo(settingsSnap.data().currentOdo || 45000);
+                        else await setDoc(settingsRef, { currentOdo: 45000 });
 
-                    const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
-                    const schedSnap = await getDoc(schedRef);
-                    if (schedSnap.exists() && schedSnap.data().items) setSchedule(schedSnap.data().items);
-                    else await setDoc(schedRef, { items: DEFAULT_SCHEDULE });
+                        const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
+                        const schedSnap = await getDoc(schedRef);
+                        if (schedSnap.exists() && schedSnap.data().items) setSchedule(schedSnap.data().items);
+                        else await setDoc(schedRef, { items: DEFAULT_SCHEDULE });
 
-                    const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile');
-                    const profileSnap = await getDoc(profileRef);
-                    if (profileSnap.exists()) setVehicleProfile(profileSnap.data());
-
-                    setLoading(false);
+                        const profileRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile');
+                        const profileSnap = await getDoc(profileRef);
+                        if (profileSnap.exists()) setVehicleProfile(profileSnap.data());
+                    } catch (err) {
+                        console.error("Error loading user data:", err);
+                    } finally {
+                        setLoading(false);
+                    }
                 };
                 loadSettings();
                 return () => unsubRecords();
             }, [user, db, appId, isGuest]);
 
-            // Guest Login Logic
+            // Guest Login Logic - FIXED
             const handleGuestLogin = async (code) => {
                 setLoading(true);
-                // 1. Fetch from Public guestCodes
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code);
-                const snap = await getDoc(docRef);
+                try {
+                    // 1. Authenticate with dedicated Guest Credentials
+                    try {
+                        await signInWithEmailAndPassword(auth, 'openaccess@open.com', 'openaccess');
+                    } catch (authErr) {
+                        console.log("Standard guest auth failed, trying fallback...", authErr.code);
+                        // Fallback: If standard auth fails (e.g. wrong password set by others), 
+                        // use Anonymous Auth to ensure the user can still access the read-only data.
+                        await signInAnonymously(auth);
+                    }
 
-                if (!snap.exists()) {
+                    // 2. Now Fetch from Public guestCodes
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code);
+                    const snap = await getDoc(docRef);
+
+                    if (!snap.exists()) {
+                        await signOut(auth); // Cleanup
+                        throw new Error("Invalid access code.");
+                    }
+
+                    const data = snap.data();
+                    if (Date.now() > data.expiresAt) {
+                        await signOut(auth);
+                        throw new Error("This access code has expired.");
+                    }
+
+                    // 3. Set Guest Mode & Data
+                    setIsGuest(true);
+                    setRecords(data.records || []);
+                    setSchedule(data.schedule || DEFAULT_SCHEDULE);
+                    setCurrentOdo(data.odo || 0);
+                    setVehicleProfile(data.profile || {});
+                    
+                } catch (err) {
+                    console.error(err);
+                    throw err; // Propagate to Login form
+                } finally {
                     setLoading(false);
-                    throw new Error("Invalid access code.");
                 }
-
-                const data = snap.data();
-                if (Date.now() > data.expiresAt) {
-                    setLoading(false);
-                    throw new Error("This access code has expired.");
-                }
-
-                // 2. Load Snapshot Data
-                setRecords(data.records || []);
-                setSchedule(data.schedule || DEFAULT_SCHEDULE);
-                setCurrentOdo(data.odo || 0);
-                setVehicleProfile(data.profile || {});
-                
-                // 3. Set Guest Mode
-                setIsGuest(true);
-                setUser({ uid: 'guest', email: 'Guest User' }); // Mock User
-                setLoading(false);
             };
 
             const exitGuestMode = () => {
