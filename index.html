@@ -121,8 +121,11 @@
         const CalendarIcon = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Icon>;
         const ClipboardCheckIcon = (p) => <Icon {...p}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><polyline points="16 13 19 16 23 12"/></Icon>;
         const XIcon = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
+        const PaperclipIcon = (p) => <Icon {...p}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></Icon>;
+        const ImageIcon = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
+        const EyeIcon = (p) => <Icon {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
 
-        // --- 3. CONFIG ---
+        // --- 3. CONFIG & UTILS ---
         const { useState, useEffect, useMemo, useCallback } = React;
         const EST_YEARLY_MILEAGE = 20000;
         const EST_DAILY_MILEAGE = EST_YEARLY_MILEAGE / 365;
@@ -132,7 +135,7 @@
             { id: 'rotate', name: 'Tire Rotation', intervalMiles: 5000, intervalMonths: 6 },
             { id: 'cabin', name: 'Cabin Air Filter', intervalMiles: 20000, intervalMonths: 24 },
             { id: 'engine_air', name: 'Engine Air Filter', intervalMiles: 20000, intervalMonths: 24 },
-            { id: 'reg', name: 'Registration Renewal', intervalMiles: 0, intervalMonths: 12 }, // Time Based Example
+            { id: 'reg', name: 'Registration Renewal', intervalMiles: 0, intervalMonths: 12 },
         ];
 
         const formatDate = (dateString) => {
@@ -142,10 +145,65 @@
             return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         };
 
+        // Compress image to Base64 (Max 800px, JPEG 60%)
+        const compressImage = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        };
+
         // --- 4. COMPONENTS ---
 
-        // NEW: Item History Modal (Timeline View)
-        const ItemHistoryModal = ({ item, records, onClose }) => {
+        // NEW: Image Viewer Modal
+        const ImageViewerModal = ({ src, title, onClose }) => {
+            if (!src) return null;
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-[60] backdrop-blur-sm" onClick={onClose}>
+                    <div className="relative max-w-4xl max-h-screen w-full flex flex-col items-center">
+                        <div className="absolute top-2 right-2 md:-top-10 md:-right-10">
+                             <button onClick={onClose} className="text-white hover:text-red-400 bg-black bg-opacity-50 rounded-full p-2"><XIcon size={32}/></button>
+                        </div>
+                        <h3 className="text-white mb-2 font-bold text-lg md:hidden">{title}</h3>
+                        <img src={src} alt="Receipt" className="max-h-[85vh] max-w-full rounded shadow-2xl border-4 border-slate-800" onClick={(e) => e.stopPropagation()} />
+                        <p className="text-slate-400 mt-4 text-sm hidden md:block">{title}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        // Updated Item History Modal
+        const ItemHistoryModal = ({ item, records, onClose, onViewImage }) => {
             const historyRecords = records
                 .filter(r => r.serviceType === item.name)
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -171,8 +229,20 @@
                                             <div className="absolute -left-[31px] top-1 h-4 w-4 rounded-full bg-blue-500 border-2 border-white ring-2 ring-slate-100"></div>
                                             
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-sm font-bold text-slate-800">{formatDate(record.date)}</span>
-                                                <span className="text-xs font-mono text-slate-500">{record.mileage.toLocaleString()} mi</span>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-slate-800">{formatDate(record.date)}</span>
+                                                        <span className="text-xs font-mono text-slate-500">{record.mileage.toLocaleString()} mi</span>
+                                                    </div>
+                                                    {record.receiptImage && (
+                                                        <button 
+                                                            onClick={() => onViewImage(record.receiptImage, `${record.serviceType} - ${formatDate(record.date)}`)} 
+                                                            className="text-blue-600 hover:text-blue-800 p-1 bg-blue-50 rounded border border-blue-100 flex items-center gap-1 text-xs font-bold"
+                                                        >
+                                                            <EyeIcon size={14} /> Receipt
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 
                                                 {(record.parts || record.skuReference) && (
                                                     <div className="mt-1 text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
@@ -198,14 +268,12 @@
             );
         };
 
-        // NEW: Full Audit Report Component (Professional Print View)
+        // Updated Audit Report
         const FullAuditReport = ({ records, vehicleProfile, onClose }) => {
-            // Sort Oldest to Newest (Chronological)
             const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             return (
                 <div className="fixed inset-0 bg-white z-[100] overflow-y-auto">
-                    {/* Control Bar - Hidden on Print */}
                     <div className="bg-slate-800 p-4 text-white flex justify-between items-center no-print sticky top-0 shadow-md">
                         <h2 className="font-bold text-lg flex items-center gap-2"><ClipboardCheckIcon /> Full Audit Report</h2>
                         <div className="flex gap-2">
@@ -214,7 +282,6 @@
                         </div>
                     </div>
 
-                    {/* Printable Content */}
                     <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
                         {/* Header */}
                         <div className="border-b-4 border-slate-800 pb-6 mb-8">
@@ -277,6 +344,13 @@
                                             <p className="text-slate-700 text-sm italic">"{record.notes}"</p>
                                         </div>
                                     )}
+
+                                    {record.receiptImage && (
+                                        <div className="mt-2 border-t pt-2 border-slate-100">
+                                            <h5 className="text-xs font-bold text-slate-400 uppercase mb-2">Receipt</h5>
+                                            <img src={record.receiptImage} className="max-h-32 rounded border border-slate-200" alt="Receipt Thumbnail"/>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -293,7 +367,7 @@
 
         // A. LOGIN
         const Login = ({ setUser, auth, onGuestLogin }) => {
-            const [mode, setMode] = useState('login'); // login, register, guest
+            const [mode, setMode] = useState('login'); 
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [guestCode, setGuestCode] = useState('');
@@ -396,12 +470,12 @@
             );
         };
 
-        // B. SERVICE FORM
+        // B. SERVICE FORM (Updated with Image Upload)
         const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
             const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
             
             const isEditMode = !!initialData;
-            const [mode, setMode] = useState(isEditMode ? 'single' : 'single');
+            const [mode, setMode] = useState('single');
             const [commonData, setCommonData] = useState({
                 date: initialData?.date || new Date().toISOString().split('T')[0],
                 mileage: initialData?.mileage || '',
@@ -410,11 +484,31 @@
             const [singleData, setSingleData] = useState({
                 serviceType: initialData?.serviceType || (schedule.length > 0 ? schedule[0].name : 'Oil Change'),
                 parts: initialData?.parts || '',
-                skuReference: initialData?.skuReference || ''
+                skuReference: initialData?.skuReference || '',
+                receiptImage: initialData?.receiptImage || null // Stores Base64
             });
             const [multiSelection, setMultiSelection] = useState({});
             const [otherServiceName, setOtherServiceName] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
+            const [isCompressing, setIsCompressing] = useState(false);
+
+            const handleFileChange = async (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    setIsCompressing(true);
+                    try {
+                        const compressedBase64 = await compressImage(e.target.files[0]);
+                        setSingleData(prev => ({ ...prev, receiptImage: compressedBase64 }));
+                    } catch (err) {
+                        alert("Error processing image: " + err.message);
+                    } finally {
+                        setIsCompressing(false);
+                    }
+                }
+            };
+
+            const removeImage = () => {
+                setSingleData(prev => ({ ...prev, receiptImage: null }));
+            };
 
             const toggleService = (serviceName) => {
                 setMultiSelection(prev => {
@@ -440,7 +534,14 @@
                     const basePayload = { date: commonData.date, mileage: Number(commonData.mileage), timestamp };
 
                     if (mode === 'single') {
-                        const dataPayload = { ...basePayload, serviceType: singleData.serviceType, parts: singleData.parts, skuReference: singleData.skuReference, notes: commonData.notes };
+                        const dataPayload = { 
+                            ...basePayload, 
+                            serviceType: singleData.serviceType, 
+                            parts: singleData.parts, 
+                            skuReference: singleData.skuReference, 
+                            notes: commonData.notes,
+                            receiptImage: singleData.receiptImage 
+                        };
                         if (isEditMode) {
                             await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id), dataPayload);
                         } else {
@@ -450,7 +551,7 @@
                         const promises = Object.entries(multiSelection).map(([name, details]) => {
                              const finalName = name === 'Other' ? (otherServiceName || 'Other Service') : name;
                              return addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), {
-                                ...basePayload, serviceType: finalName, parts: details.parts, skuReference: details.sku, notes: commonData.notes
+                                ...basePayload, serviceType: finalName, parts: details.parts, skuReference: details.sku, notes: commonData.notes, receiptImage: null
                              });
                         });
                         await Promise.all(promises);
@@ -487,6 +588,33 @@
                                     <div><label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label><select className="w-full border p-2 rounded mt-1" value={singleData.serviceType} onChange={e => setSingleData({...singleData, serviceType: e.target.value})}>{schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}<option value="Other">Other</option></select></div>
                                     <div><label className="block text-xs font-bold text-slate-500 uppercase">Parts / Notes</label><textarea className="w-full border p-2 rounded mt-1 h-20" value={singleData.parts} onChange={e => setSingleData({...singleData, parts: e.target.value})} /></div>
                                     <div><label className="block text-xs font-bold text-slate-500 uppercase">SKU / Ref</label><input className="w-full border p-2 rounded mt-1 font-mono" value={singleData.skuReference} onChange={e => setSingleData({...singleData, skuReference: e.target.value})} /></div>
+                                    
+                                    {/* Image Upload Section */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Receipt / Image</label>
+                                        {!singleData.receiptImage ? (
+                                            <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition relative">
+                                                <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={isCompressing} />
+                                                <div className="text-slate-500 flex flex-col items-center">
+                                                    {isCompressing ? (
+                                                        <span>Compressing image...</span>
+                                                    ) : (
+                                                        <>
+                                                            <ImageIcon size={24} className="mb-2"/>
+                                                            <span className="text-sm">Click to upload image</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative inline-block border rounded overflow-hidden group">
+                                                <img src={singleData.receiptImage} alt="Receipt Preview" className="h-24 w-auto object-cover" />
+                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition flex items-center justify-center">
+                                                    <button type="button" onClick={removeImage} className="text-white opacity-0 group-hover:opacity-100 bg-red-600 rounded-full p-1"><XIcon size={16}/></button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                             {mode === 'multi' && (
@@ -498,7 +626,7 @@
                                 </div>
                             )}
                             <div><label className="block text-xs font-bold text-slate-500 uppercase">General Notes</label><input className="w-full border p-2 rounded mt-1" value={commonData.notes} onChange={e => setCommonData({...commonData, notes: e.target.value})} /></div>
-                            <div className="pt-4"><button type="submit" disabled={isSubmitting || (mode === 'multi' && Object.keys(multiSelection).length === 0)} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold">{isSubmitting ? 'Saving...' : 'Save'}</button></div>
+                            <div className="pt-4"><button type="submit" disabled={isSubmitting || isCompressing || (mode === 'multi' && Object.keys(multiSelection).length === 0)} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold">{isSubmitting ? 'Saving...' : 'Save Record'}</button></div>
                         </form>
                     </div>
                 </div>
@@ -646,8 +774,8 @@
         };
 
 
-        // E. AUDIT LOG
-        const AuditLog = ({ records, vehicleProfile, onEdit, onDelete, isReadOnly, onPullAudit }) => {
+        // E. AUDIT LOG (Updated)
+        const AuditLog = ({ records, vehicleProfile, onEdit, onDelete, isReadOnly, onPullAudit, onViewImage }) => {
             const sortedRecords = [...records].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
             return (
@@ -673,7 +801,7 @@
                                     <th className="px-4 py-3 border-b border-slate-200">Odometer</th>
                                     <th className="px-4 py-3 border-b border-slate-200">Service Performed</th>
                                     <th className="px-4 py-3 border-b border-slate-200 w-1/3">Parts / Materials</th>
-                                    <th className="px-4 py-3 border-b border-slate-200">SKU / Ref</th>
+                                    <th className="px-4 py-3 border-b border-slate-200">Ref / Receipt</th>
                                     {!isReadOnly && <th className="px-4 py-3 border-b border-slate-200 no-print w-24">Actions</th>}
                                 </tr>
                             </thead>
@@ -684,7 +812,19 @@
                                         <td className="px-4 py-3 font-mono">{record.mileage.toLocaleString()} mi</td>
                                         <td className="px-4 py-3 font-semibold text-blue-900 print:text-black">{record.serviceType}</td>
                                         <td className="px-4 py-3 text-slate-600 print:text-black">{record.parts}</td>
-                                        <td className="px-4 py-3 font-mono text-xs">{record.skuReference || '-'}</td>
+                                        <td className="px-4 py-3 text-xs">
+                                            <div className="flex flex-col gap-1">
+                                                {record.skuReference && <span className="font-mono">{record.skuReference}</span>}
+                                                {record.receiptImage && (
+                                                    <button 
+                                                        onClick={() => onViewImage(record.receiptImage, `${record.serviceType} - ${formatDate(record.date)}`)} 
+                                                        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-2 py-1 rounded w-fit"
+                                                    >
+                                                        <EyeIcon size={14}/> View
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                         {!isReadOnly && <td className="px-4 py-3 no-print">
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => onEdit(record)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><EditIcon size={16}/></button>
@@ -711,7 +851,6 @@
                 return schedule.map(item => {
                     const isTimeOnly = Number(item.intervalMiles) === 0;
                     
-                    // Allow 0 for time-only items, else default to 5000 if invalid/missing
                     const safeIntervalMiles = isTimeOnly ? 0 : Math.max(1, Number(item.intervalMiles) || 5000); 
                     const safeIntervalMonths = Math.max(1, Number(item.intervalMonths) || 6);
 
@@ -731,18 +870,15 @@
                     else if (daysRemaining < 30) status = 'due';
                     else if (!isTimeOnly && milesRemaining < 1000) status = 'due';
                     
-                    // Projection Logic
                     let projectedDate = new Date();
                     
                     if (isTimeOnly) {
-                        // Purely date based projection
                         const lastDate = new Date(lastService.date);
                         if (!isNaN(lastDate.getTime())) {
                             projectedDate = new Date(lastDate);
                             projectedDate.setMonth(projectedDate.getMonth() + safeIntervalMonths);
                         }
                     } else {
-                        // Mileage based projection
                         const daysUntilMileLimit = milesRemaining / EST_DAILY_MILEAGE;
                         if (isFinite(daysUntilMileLimit)) {
                             projectedDate.setDate(projectedDate.getDate() + daysUntilMileLimit);
@@ -847,8 +983,9 @@
             const [showScheduleManager, setShowScheduleManager] = useState(false);
             const [showVehicleModal, setShowVehicleModal] = useState(false);
             const [showShareModal, setShowShareModal] = useState(false);
-            const [showFullAudit, setShowFullAudit] = useState(false); // NEW
-            const [historyItem, setHistoryItem] = useState(null); // NEW: For item history modal
+            const [showFullAudit, setShowFullAudit] = useState(false); 
+            const [historyItem, setHistoryItem] = useState(null); 
+            const [viewingImage, setViewingImage] = useState(null); // { src: '', title: '' }
             
             const [loading, setLoading] = useState(true);
 
@@ -857,8 +994,6 @@
                 const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); }
                 initAuth();
                 const unsub = onAuthStateChanged(auth, u => {
-                    // Only set user if we are NOT in Guest mode
-                    // If we are in Guest mode, we handle "user" as null but data as present
                     if (!isGuest) {
                         setUser(u);
                         if (!u) setLoading(false);
@@ -867,19 +1002,17 @@
                 return () => unsub();
             }, [auth, isGuest]);
 
-            // Data Loading (Real User)
+            // Data Loading
             useEffect(() => {
-                // Modified: explicit check for the guest account email to prevent overwriting guest data
                 if (!user || isGuest || user.email === 'openaccess@open.com') { 
                     if (!isGuest && user?.email !== 'openaccess@open.com') {
                         setRecords([]); 
                     }
-                    // FIX: Ensure loading stops if we skip data loading for specific accounts
                     if (user && !isGuest) setLoading(false); 
                     return; 
                 }
                 
-                setLoading(true); // Ensure loading is true when starting fetch
+                setLoading(true); 
 
                 const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'));
                 const unsubRecords = onSnapshot(q, snap => {
@@ -896,14 +1029,12 @@
                         const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
                         const schedSnap = await getDoc(schedRef);
                         
-                        // SAFETY FIX: Sanitize schedule items to allow 0 miles (Time-based)
                         if (schedSnap.exists() && schedSnap.data().items) {
                             const rawItems = schedSnap.data().items;
                             const sanitizedItems = rawItems.map(item => ({
                                 ...item,
-                                // Only force min 1 if it's NOT explicitly meant to be time based (0)
                                 intervalMiles: Number(item.intervalMiles) >= 0 ? Number(item.intervalMiles) : 5000, 
-                                intervalMonths: Math.max(1, Number(item.intervalMonths) || 6)   // Force min 1 month
+                                intervalMonths: Math.max(1, Number(item.intervalMonths) || 6)
                             }));
                             setSchedule(sanitizedItems);
                         } else {
@@ -923,26 +1054,22 @@
                 return () => unsubRecords();
             }, [user, db, appId, isGuest]);
 
-            // Guest Login Logic - FIXED
+            // Guest Login Logic
             const handleGuestLogin = async (code) => {
                 setLoading(true);
                 try {
-                    // 1. Authenticate with dedicated Guest Credentials
                     try {
                         await signInWithEmailAndPassword(auth, 'openaccess@open.com', 'openaccess');
                     } catch (authErr) {
                         console.log("Standard guest auth failed, trying fallback...", authErr.code);
-                        // Fallback: If standard auth fails (e.g. wrong password set by others), 
-                        // use Anonymous Auth to ensure the user can still access the read-only data.
                         await signInAnonymously(auth);
                     }
 
-                    // 2. Now Fetch from Public guestCodes
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code);
                     const snap = await getDoc(docRef);
 
                     if (!snap.exists()) {
-                        await signOut(auth); // Cleanup
+                        await signOut(auth);
                         throw new Error("Invalid access code.");
                     }
 
@@ -952,11 +1079,9 @@
                         throw new Error("This access code has expired.");
                     }
 
-                    // 3. Set Guest Mode & Data
                     setIsGuest(true);
                     setRecords(data.records || []);
                     
-                    // SAFETY FIX 4: Sanitize incoming Guest Schedule too
                     const guestSchedule = (data.schedule || DEFAULT_SCHEDULE).map(item => ({
                         ...item,
                         intervalMiles: Number(item.intervalMiles) >= 0 ? Number(item.intervalMiles) : 5000,
@@ -969,7 +1094,7 @@
                     
                 } catch (err) {
                     console.error(err);
-                    throw err; // Propagate to Login form
+                    throw err; 
                 } finally {
                     setLoading(false);
                 }
@@ -980,7 +1105,7 @@
                 setUser(null);
                 setRecords([]);
                 signOut(auth);
-                window.location.reload(); // Hard reset
+                window.location.reload(); 
             };
 
             const handleUpdateOdo = async (newOdo) => {
@@ -995,6 +1120,7 @@
             };
 
             const handleEditRecord = (record) => { if(isGuest) return; setEditingRecord(record); setShowServiceForm(true); };
+            const handleViewImage = (src, title) => setViewingImage({ src, title });
 
             // RENDER
             if (loading) return <div className="h-screen flex items-center justify-center text-slate-500">Loading...</div>;
@@ -1065,7 +1191,7 @@
                                 schedule={schedule}
                                 vehicleName={vehicleProfile.yearMakeModel}
                                 isReadOnly={isGuest}
-                                onItemClick={setHistoryItem} // NEW
+                                onItemClick={setHistoryItem}
                             />
                         ) : (
                             <AuditLog 
@@ -1075,10 +1201,12 @@
                                 onDelete={handleDeleteRecord}
                                 isReadOnly={isGuest}
                                 onPullAudit={() => setShowFullAudit(true)}
+                                onViewImage={handleViewImage}
                             />
                         )}
                     </main>
 
+                    {/* Modals */}
                     {showServiceForm && !isGuest && (
                         <ServiceForm 
                             user={user} 
@@ -1122,6 +1250,15 @@
                             item={historyItem}
                             records={records}
                             onClose={() => setHistoryItem(null)}
+                            onViewImage={handleViewImage}
+                        />
+                    )}
+
+                    {viewingImage && (
+                        <ImageViewerModal 
+                            src={viewingImage.src}
+                            title={viewingImage.title}
+                            onClose={() => setViewingImage(null)}
                         />
                     )}
                 </div>
