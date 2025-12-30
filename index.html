@@ -13,6 +13,21 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
+        @keyframes flash-red {
+            0%, 100% { background-color: #fee2e2; border-color: #ef4444; } /* Red-100/500 */
+            50% { background-color: #fecaca; border-color: #b91c1c; } /* Red-200/700 */
+        }
+        @keyframes flash-yellow {
+            0%, 100% { background-color: #fef9c3; border-color: #eab308; } /* Yellow-100/500 */
+            50% { background-color: #fef08a; border-color: #a16207; } /* Yellow-200/700 */
+        }
+        .animate-flash-red {
+            animation: flash-red 2s infinite;
+        }
+        .animate-flash-yellow {
+            animation: flash-yellow 2s infinite;
+        }
+
         @media print {
             .no-print { display: none !important; }
             body { background: white; color: black; }
@@ -124,18 +139,21 @@
         const PaperclipIcon = (p) => <Icon {...p}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></Icon>;
         const ImageIcon = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
         const EyeIcon = (p) => <Icon {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
+        const BellIcon = (p) => <Icon {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></Icon>;
+        const BellOffIcon = (p) => <Icon {...p}><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/><path d="M8.668 3.332a6.002 6.002 0 0 1 8.332 3.668 9 9 0 0 1 1 5H21s-2.029.029-2.923 2.502"/><path d="M3 12h.262c.307.72.637 1.444 1.738 2.05"/></Icon>;
 
         // --- 3. CONFIG & UTILS ---
         const { useState, useEffect, useMemo, useCallback } = React;
         const EST_YEARLY_MILEAGE = 20000;
         const EST_DAILY_MILEAGE = EST_YEARLY_MILEAGE / 365;
 
+        // Default alerts enabled
         const DEFAULT_SCHEDULE = [
-            { id: 'oil', name: 'Engine Oil & Filter', intervalMiles: 10000, intervalMonths: 12 },
-            { id: 'rotate', name: 'Tire Rotation', intervalMiles: 5000, intervalMonths: 6 },
-            { id: 'cabin', name: 'Cabin Air Filter', intervalMiles: 20000, intervalMonths: 24 },
-            { id: 'engine_air', name: 'Engine Air Filter', intervalMiles: 20000, intervalMonths: 24 },
-            { id: 'reg', name: 'Registration Renewal', intervalMiles: 0, intervalMonths: 12 },
+            { id: 'oil', name: 'Engine Oil & Filter', intervalMiles: 10000, intervalMonths: 12, alertEnabled: true },
+            { id: 'rotate', name: 'Tire Rotation', intervalMiles: 5000, intervalMonths: 6, alertEnabled: true },
+            { id: 'cabin', name: 'Cabin Air Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
+            { id: 'engine_air', name: 'Engine Air Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
+            { id: 'reg', name: 'Registration Renewal', intervalMiles: 0, intervalMonths: 12, alertEnabled: true },
         ];
 
         const formatDate = (dateString) => {
@@ -145,7 +163,6 @@
             return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         };
 
-        // Compress image to Base64 (Max 800px, JPEG 60%)
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -185,7 +202,49 @@
 
         // --- 4. COMPONENTS ---
 
-        // NEW: Image Viewer Modal
+        // NEW: Flashing Alert Banner with per-item filtering
+        const AlertBanner = ({ items }) => {
+            if (!items || items.length === 0) return null;
+
+            // Only show alerts if the ITEM specifically has alerts enabled
+            const overdue = items.filter(i => i.status === 'overdue' && i.alertEnabled !== false);
+            const due = items.filter(i => i.status === 'due' && i.alertEnabled !== false);
+
+            if (overdue.length === 0 && due.length === 0) return null;
+
+            return (
+                <div className="mb-6 space-y-4">
+                    {overdue.length > 0 && (
+                        <div className="bg-red-50 border-l-8 border-red-600 text-red-800 p-4 rounded shadow-lg animate-flash-red flex items-start gap-3">
+                            <AlertTriangleIcon size={24} className="shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-lg">Attention Required</p>
+                                <ul className="list-disc list-inside text-sm font-medium mt-1">
+                                    {overdue.map(i => (
+                                        <li key={i.id}>
+                                            <span className="font-extrabold">{i.name}</span> is overdue 
+                                            {i.milesRemaining < 0 && !i.isTimeOnly ? ` by ${Math.abs(Math.round(i.milesRemaining)).toLocaleString()} mi` : ''}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                    {due.length > 0 && (
+                        <div className="bg-yellow-50 border-l-8 border-yellow-500 text-yellow-900 p-4 rounded shadow-lg animate-flash-yellow flex items-start gap-3">
+                            <ClockIcon size={24} className="shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-bold text-lg">Upcoming Service</p>
+                                <ul className="list-disc list-inside text-sm font-medium mt-1">
+                                    {due.map(i => <li key={i.id}><span className="font-extrabold">{i.name}</span> is due soon</li>)}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const ImageViewerModal = ({ src, title, onClose }) => {
             if (!src) return null;
             return (
@@ -202,7 +261,6 @@
             );
         };
 
-        // Updated Item History Modal
         const ItemHistoryModal = ({ item, records, onClose, onViewImage }) => {
             const historyRecords = records
                 .filter(r => r.serviceType === item.name)
@@ -215,7 +273,6 @@
                             <h2 className="font-bold text-lg">{item.name} History</h2>
                             <button onClick={onClose} className="hover:text-slate-300"><XIcon size={20}/></button>
                         </div>
-                        
                         <div className="p-6 overflow-y-auto">
                             {historyRecords.length === 0 ? (
                                 <div className="text-center text-slate-500 py-8">
@@ -225,9 +282,7 @@
                                 <div className="relative border-l-2 border-slate-200 ml-3 space-y-8 pl-6 py-2">
                                     {historyRecords.map((record) => (
                                         <div key={record.id} className="relative">
-                                            {/* Timeline Dot */}
                                             <div className="absolute -left-[31px] top-1 h-4 w-4 rounded-full bg-blue-500 border-2 border-white ring-2 ring-slate-100"></div>
-                                            
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex flex-col">
@@ -243,17 +298,13 @@
                                                         </button>
                                                     )}
                                                 </div>
-                                                
                                                 {(record.parts || record.skuReference) && (
                                                     <div className="mt-1 text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
                                                         {record.parts && <div className="font-medium whitespace-pre-wrap">{record.parts}</div>}
                                                         {record.skuReference && <div className="text-xs text-slate-500 font-mono mt-1">Ref: {record.skuReference}</div>}
                                                     </div>
                                                 )}
-                                                
-                                                {record.notes && (
-                                                    <div className="text-xs text-slate-500 italic mt-1">"{record.notes}"</div>
-                                                )}
+                                                {record.notes && <div className="text-xs text-slate-500 italic mt-1">"{record.notes}"</div>}
                                             </div>
                                         </div>
                                     ))}
@@ -268,10 +319,8 @@
             );
         };
 
-        // Updated Audit Report
         const FullAuditReport = ({ records, vehicleProfile, onClose }) => {
             const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
             return (
                 <div className="fixed inset-0 bg-white z-[100] overflow-y-auto">
                     <div className="bg-slate-800 p-4 text-white flex justify-between items-center no-print sticky top-0 shadow-md">
@@ -281,13 +330,10 @@
                             <button onClick={onClose} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded transition">Close</button>
                         </div>
                     </div>
-
                     <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
-                        {/* Header */}
                         <div className="border-b-4 border-slate-800 pb-6 mb-8">
                             <h1 className="text-4xl font-bold text-slate-900 mb-2 uppercase tracking-tight">Vehicle History Report</h1>
                             <p className="text-slate-500 text-sm mb-6">Generated by HTMS on {new Date().toLocaleDateString()}</p>
-                            
                             <div className="grid grid-cols-2 gap-8">
                                 <div>
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vehicle Details</h3>
@@ -301,18 +347,13 @@
                                 </div>
                             </div>
                         </div>
-
-                        {/* Records List */}
                         <div className="space-y-6">
                             {sortedRecords.length === 0 && <p className="text-center text-slate-400 py-10">No service records found.</p>}
-                            
                             {sortedRecords.map((record, index) => (
                                 <div key={record.id} className="audit-record border border-slate-200 rounded-lg p-6 flex flex-col gap-4 shadow-sm print:shadow-none print:border-slate-300">
                                     <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-slate-100 text-slate-600 font-bold text-xl px-4 py-3 rounded-lg border border-slate-200">
-                                                #{index + 1}
-                                            </div>
+                                            <div className="bg-slate-100 text-slate-600 font-bold text-xl px-4 py-3 rounded-lg border border-slate-200">#{index + 1}</div>
                                             <div>
                                                 <h4 className="text-lg font-bold text-slate-900">{record.serviceType}</h4>
                                                 <div className="text-slate-500 text-sm flex items-center gap-2">
@@ -326,40 +367,16 @@
                                             <div className="text-2xl font-mono font-bold text-slate-800">{record.mileage.toLocaleString()} <span className="text-sm text-slate-500 font-sans font-normal">mi</span></div>
                                         </div>
                                     </div>
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Parts & Materials</h5>
-                                            <p className="text-slate-800 text-sm whitespace-pre-wrap">{record.parts || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Reference / SKU</h5>
-                                            <p className="font-mono text-slate-700 text-sm">{record.skuReference || 'N/A'}</p>
-                                        </div>
+                                        <div><h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Parts & Materials</h5><p className="text-slate-800 text-sm whitespace-pre-wrap">{record.parts || 'N/A'}</p></div>
+                                        <div><h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Reference / SKU</h5><p className="font-mono text-slate-700 text-sm">{record.skuReference || 'N/A'}</p></div>
                                     </div>
-
-                                    {record.notes && (
-                                        <div className="bg-slate-50 p-3 rounded border border-slate-100 mt-2">
-                                            <h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Notes</h5>
-                                            <p className="text-slate-700 text-sm italic">"{record.notes}"</p>
-                                        </div>
-                                    )}
-
-                                    {record.receiptImage && (
-                                        <div className="mt-2 border-t pt-2 border-slate-100">
-                                            <h5 className="text-xs font-bold text-slate-400 uppercase mb-2">Receipt</h5>
-                                            <img src={record.receiptImage} className="max-h-32 rounded border border-slate-200" alt="Receipt Thumbnail"/>
-                                        </div>
-                                    )}
+                                    {record.notes && <div className="bg-slate-50 p-3 rounded border border-slate-100 mt-2"><h5 className="text-xs font-bold text-slate-400 uppercase mb-1">Notes</h5><p className="text-slate-700 text-sm italic">"{record.notes}"</p></div>}
+                                    {record.receiptImage && <div className="mt-2 border-t pt-2 border-slate-100"><h5 className="text-xs font-bold text-slate-400 uppercase mb-2">Receipt</h5><img src={record.receiptImage} className="max-h-32 rounded border border-slate-200" alt="Receipt Thumbnail"/></div>}
                                 </div>
                             ))}
                         </div>
-
-                        {/* Footer */}
-                        <div className="mt-12 pt-6 border-t border-slate-300 text-center text-xs text-slate-400">
-                            <p>HTMS - Professional Maintenance & Warranty Tracking System</p>
-                            <p>Certified Record • Printed on {new Date().toLocaleDateString()}</p>
-                        </div>
+                        <div className="mt-12 pt-6 border-t border-slate-300 text-center text-xs text-slate-400"><p>HTMS - Professional Maintenance & Warranty Tracking System</p><p>Certified Record • Printed on {new Date().toLocaleDateString()}</p></div>
                     </div>
                 </div>
             );
@@ -412,56 +429,23 @@
                         </div>
                         <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">HTMS</h1>
                         <p className="text-center text-slate-500 mb-6">Home Tracker Maintenance System</p>
-                        
                         {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
-
                         {mode === 'guest' ? (
                             <form onSubmit={handleGuestSubmit} className="space-y-4">
-                                <div className="text-center mb-4">
-                                    <h3 className="font-bold text-slate-700">Guest Access</h3>
-                                    <p className="text-xs text-slate-500">Enter the 6-character code provided by the owner.</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Access Code</label>
-                                    <input 
-                                        type="text" 
-                                        required 
-                                        maxLength="6"
-                                        placeholder="e.g. A1B2C3"
-                                        className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2 text-center text-2xl font-mono uppercase tracking-widest" 
-                                        value={guestCode} 
-                                        onChange={(e) => setGuestCode(e.target.value)} 
-                                    />
-                                </div>
-                                <button type="submit" disabled={isLoading} className="w-full bg-slate-800 text-white py-2 px-4 rounded-md hover:bg-slate-900 transition font-medium flex justify-center gap-2">
-                                    {isLoading ? 'Verifying...' : <><ShieldIcon size={20}/> Access Dashboard</>}
-                                </button>
-                                <button type="button" onClick={() => setMode('login')} className="w-full text-center text-sm text-slate-500 hover:text-slate-800">
-                                    Back to Login
-                                </button>
+                                <div className="text-center mb-4"><h3 className="font-bold text-slate-700">Guest Access</h3><p className="text-xs text-slate-500">Enter the 6-character code provided by the owner.</p></div>
+                                <div><label className="block text-sm font-medium text-slate-700">Access Code</label><input type="text" required maxLength="6" placeholder="e.g. A1B2C3" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2 text-center text-2xl font-mono uppercase tracking-widest" value={guestCode} onChange={(e) => setGuestCode(e.target.value)} /></div>
+                                <button type="submit" disabled={isLoading} className="w-full bg-slate-800 text-white py-2 px-4 rounded-md hover:bg-slate-900 transition font-medium flex justify-center gap-2">{isLoading ? 'Verifying...' : <><ShieldIcon size={20}/> Access Dashboard</>}</button>
+                                <button type="button" onClick={() => setMode('login')} className="w-full text-center text-sm text-slate-500 hover:text-slate-800">Back to Login</button>
                             </form>
                         ) : (
                             <form onSubmit={handleAuth} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Email</label>
-                                    <input type="email" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={email} onChange={(e) => setEmail(e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Password</label>
-                                    <input type="password" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={password} onChange={(e) => setPassword(e.target.value)} />
-                                </div>
-                                <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition font-medium">
-                                    {isLoading ? 'Loading...' : (mode === 'register' ? 'Create Account' : 'Sign In')}
-                                </button>
-                                
+                                <div><label className="block text-sm font-medium text-slate-700">Email</label><input type="email" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+                                <div><label className="block text-sm font-medium text-slate-700">Password</label><input type="password" required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                                <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition font-medium">{isLoading ? 'Loading...' : (mode === 'register' ? 'Create Account' : 'Sign In')}</button>
                                 <div className="space-y-3 pt-2">
-                                    <button type="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="w-full text-center text-sm text-blue-600 hover:underline">
-                                        {mode === 'login' ? 'Need an account? Register' : 'Already have an account? Sign In'}
-                                    </button>
+                                    <button type="button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="w-full text-center text-sm text-blue-600 hover:underline">{mode === 'login' ? 'Need an account? Register' : 'Already have an account? Sign In'}</button>
                                     <div className="border-t border-slate-200"></div>
-                                    <button type="button" onClick={() => setMode('guest')} className="w-full text-center text-sm font-bold text-slate-700 hover:text-slate-900 flex justify-center items-center gap-1">
-                                        I have a Guest Code <KeyIcon size={14}/>
-                                    </button>
+                                    <button type="button" onClick={() => setMode('guest')} className="w-full text-center text-sm font-bold text-slate-700 hover:text-slate-900 flex justify-center items-center gap-1">I have a Guest Code <KeyIcon size={14}/></button>
                                 </div>
                             </form>
                         )}
@@ -470,23 +454,13 @@
             );
         };
 
-        // B. SERVICE FORM (Updated with Image Upload)
+        // B. SERVICE FORM
         const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
             const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
-            
             const isEditMode = !!initialData;
             const [mode, setMode] = useState('single');
-            const [commonData, setCommonData] = useState({
-                date: initialData?.date || new Date().toISOString().split('T')[0],
-                mileage: initialData?.mileage || '',
-                notes: initialData?.notes || ''
-            });
-            const [singleData, setSingleData] = useState({
-                serviceType: initialData?.serviceType || (schedule.length > 0 ? schedule[0].name : 'Oil Change'),
-                parts: initialData?.parts || '',
-                skuReference: initialData?.skuReference || '',
-                receiptImage: initialData?.receiptImage || null // Stores Base64
-            });
+            const [commonData, setCommonData] = useState({ date: initialData?.date || new Date().toISOString().split('T')[0], mileage: initialData?.mileage || '', notes: initialData?.notes || '' });
+            const [singleData, setSingleData] = useState({ serviceType: initialData?.serviceType || (schedule.length > 0 ? schedule[0].name : 'Oil Change'), parts: initialData?.parts || '', skuReference: initialData?.skuReference || '', receiptImage: initialData?.receiptImage || null });
             const [multiSelection, setMultiSelection] = useState({});
             const [otherServiceName, setOtherServiceName] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
@@ -495,136 +469,41 @@
             const handleFileChange = async (e) => {
                 if (e.target.files && e.target.files[0]) {
                     setIsCompressing(true);
-                    try {
-                        const compressedBase64 = await compressImage(e.target.files[0]);
-                        setSingleData(prev => ({ ...prev, receiptImage: compressedBase64 }));
-                    } catch (err) {
-                        alert("Error processing image: " + err.message);
-                    } finally {
-                        setIsCompressing(false);
-                    }
+                    try { const compressedBase64 = await compressImage(e.target.files[0]); setSingleData(prev => ({ ...prev, receiptImage: compressedBase64 })); } catch (err) { alert("Error processing image: " + err.message); } finally { setIsCompressing(false); }
                 }
             };
-
-            const removeImage = () => {
-                setSingleData(prev => ({ ...prev, receiptImage: null }));
-            };
-
-            const toggleService = (serviceName) => {
-                setMultiSelection(prev => {
-                    const newState = { ...prev };
-                    if (newState[serviceName]) delete newState[serviceName];
-                    else newState[serviceName] = { parts: '', sku: '' };
-                    return newState;
-                });
-            };
-
-            const updateMultiDetails = (serviceName, field, value) => {
-                setMultiSelection(prev => ({
-                    ...prev,
-                    [serviceName]: { ...prev[serviceName], [field]: value }
-                }));
-            };
+            const removeImage = () => { setSingleData(prev => ({ ...prev, receiptImage: null })); };
+            const toggleService = (serviceName) => { setMultiSelection(prev => { const newState = { ...prev }; if (newState[serviceName]) delete newState[serviceName]; else newState[serviceName] = { parts: '', sku: '' }; return newState; }); };
+            const updateMultiDetails = (serviceName, field, value) => { setMultiSelection(prev => ({ ...prev, [serviceName]: { ...prev[serviceName], [field]: value } })); };
 
             const handleSubmit = async (e) => {
-                e.preventDefault();
-                setIsSubmitting(true);
+                e.preventDefault(); setIsSubmitting(true);
                 try {
                     const timestamp = serverTimestamp();
                     const basePayload = { date: commonData.date, mileage: Number(commonData.mileage), timestamp };
-
                     if (mode === 'single') {
-                        const dataPayload = { 
-                            ...basePayload, 
-                            serviceType: singleData.serviceType, 
-                            parts: singleData.parts, 
-                            skuReference: singleData.skuReference, 
-                            notes: commonData.notes,
-                            receiptImage: singleData.receiptImage 
-                        };
-                        if (isEditMode) {
-                            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id), dataPayload);
-                        } else {
-                            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
-                        }
+                        const dataPayload = { ...basePayload, serviceType: singleData.serviceType, parts: singleData.parts, skuReference: singleData.skuReference, notes: commonData.notes, receiptImage: singleData.receiptImage };
+                        if (isEditMode) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id), dataPayload); else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), dataPayload);
                     } else {
                         const promises = Object.entries(multiSelection).map(([name, details]) => {
                              const finalName = name === 'Other' ? (otherServiceName || 'Other Service') : name;
-                             return addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), {
-                                ...basePayload, serviceType: finalName, parts: details.parts, skuReference: details.sku, notes: commonData.notes, receiptImage: null
-                             });
+                             return addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), { ...basePayload, serviceType: finalName, parts: details.parts, skuReference: details.sku, notes: commonData.notes, receiptImage: null });
                         });
                         await Promise.all(promises);
                     }
-                    onSuccess();
-                    onClose();
-                } catch (error) {
-                    alert("Error: " + error.message);
-                } finally {
-                    setIsSubmitting(false);
-                }
+                    onSuccess(); onClose();
+                } catch (error) { alert("Error: " + error.message); } finally { setIsSubmitting(false); }
             };
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="bg-blue-600 p-4 flex justify-between items-center shrink-0">
-                            <h2 className="text-white font-bold text-lg">{isEditMode ? 'Edit Record' : (mode === 'multi' ? 'Log Multiple' : 'Log Service')}</h2>
-                            <button onClick={onClose} className="text-blue-100 hover:text-white"><LogOutIcon size={20} className="rotate-180" /></button>
-                        </div>
+                        <div className="bg-blue-600 p-4 flex justify-between items-center shrink-0"><h2 className="text-white font-bold text-lg">{isEditMode ? 'Edit Record' : (mode === 'multi' ? 'Log Multiple' : 'Log Service')}</h2><button onClick={onClose} className="text-blue-100 hover:text-white"><LogOutIcon size={20} className="rotate-180" /></button></div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-bold text-slate-500 uppercase">Date</label><input type="date" required className="w-full border p-2 rounded mt-1" value={commonData.date} onChange={e => setCommonData({...commonData, date: e.target.value})} /></div>
-                                <div><label className="block text-xs font-bold text-slate-500 uppercase">Mileage (Current)</label><input type="number" required className="w-full border p-2 rounded mt-1" value={commonData.mileage} onChange={e => setCommonData({...commonData, mileage: e.target.value})} /></div>
-                            </div>
-                            {!isEditMode && (
-                                <div className="flex justify-center border-b pb-4"><div className="bg-slate-100 p-1 rounded-lg flex gap-1">
-                                    <button type="button" onClick={() => setMode('single')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${mode === 'single' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}>Single</button>
-                                    <button type="button" onClick={() => setMode('multi')} className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${mode === 'multi' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}><LayersIcon size={14} /> Multi</button>
-                                </div></div>
-                            )}
-                            {mode === 'single' && (
-                                <div className="space-y-4">
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label><select className="w-full border p-2 rounded mt-1" value={singleData.serviceType} onChange={e => setSingleData({...singleData, serviceType: e.target.value})}>{schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}<option value="Other">Other</option></select></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase">Parts / Notes</label><textarea className="w-full border p-2 rounded mt-1 h-20" value={singleData.parts} onChange={e => setSingleData({...singleData, parts: e.target.value})} /></div>
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase">SKU / Ref</label><input className="w-full border p-2 rounded mt-1 font-mono" value={singleData.skuReference} onChange={e => setSingleData({...singleData, skuReference: e.target.value})} /></div>
-                                    
-                                    {/* Image Upload Section */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Receipt / Image</label>
-                                        {!singleData.receiptImage ? (
-                                            <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition relative">
-                                                <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={isCompressing} />
-                                                <div className="text-slate-500 flex flex-col items-center">
-                                                    {isCompressing ? (
-                                                        <span>Compressing image...</span>
-                                                    ) : (
-                                                        <>
-                                                            <ImageIcon size={24} className="mb-2"/>
-                                                            <span className="text-sm">Click to upload image</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="relative inline-block border rounded overflow-hidden group">
-                                                <img src={singleData.receiptImage} alt="Receipt Preview" className="h-24 w-auto object-cover" />
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition flex items-center justify-center">
-                                                    <button type="button" onClick={removeImage} className="text-white opacity-0 group-hover:opacity-100 bg-red-600 rounded-full p-1"><XIcon size={16}/></button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            {mode === 'multi' && (
-                                <div className="space-y-6">
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Select Services</label><div className="flex flex-wrap gap-2">{schedule.map(item => <button key={item.id} type="button" onClick={() => toggleService(item.name)} className={`px-3 py-2 rounded-full border text-sm font-medium ${multiSelection[item.name] ? 'bg-blue-600 text-white' : 'bg-white'}`}>{item.name}</button>)}<button type="button" onClick={() => toggleService('Other')} className={`px-3 py-2 rounded-full border text-sm font-medium ${multiSelection['Other'] ? 'bg-blue-600 text-white' : 'bg-white'}`}>Other</button></div></div>
-                                    {Object.keys(multiSelection).length > 0 && <div className="space-y-4 border-t pt-4"><h3 className="font-bold text-sm text-slate-700">Details</h3>{Object.keys(multiSelection).map(name => (
-                                        <div key={name} className="bg-slate-50 p-4 rounded-lg border"><div className="flex justify-between mb-2"><h4 className="font-bold text-blue-800">{name}</h4><button type="button" onClick={() => toggleService(name)} className="text-xs text-red-500">Remove</button></div>{name === 'Other' && <input className="w-full text-sm border p-1.5 rounded mb-2" placeholder="Service Name" value={otherServiceName} onChange={e => setOtherServiceName(e.target.value)} />}<div className="grid grid-cols-2 gap-3"><input className="text-sm border p-1.5 rounded" placeholder="Parts" value={multiSelection[name].parts} onChange={e => updateMultiDetails(name, 'parts', e.target.value)}/><input className="text-sm border p-1.5 rounded font-mono" placeholder="SKU" value={multiSelection[name].sku} onChange={e => updateMultiDetails(name, 'sku', e.target.value)}/></div></div>
-                                    ))}</div>}
-                                </div>
-                            )}
+                            <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-500 uppercase">Date</label><input type="date" required className="w-full border p-2 rounded mt-1" value={commonData.date} onChange={e => setCommonData({...commonData, date: e.target.value})} /></div><div><label className="block text-xs font-bold text-slate-500 uppercase">Mileage (Current)</label><input type="number" required className="w-full border p-2 rounded mt-1" value={commonData.mileage} onChange={e => setCommonData({...commonData, mileage: e.target.value})} /></div></div>
+                            {!isEditMode && (<div className="flex justify-center border-b pb-4"><div className="bg-slate-100 p-1 rounded-lg flex gap-1"><button type="button" onClick={() => setMode('single')} className={`px-4 py-1.5 rounded-md text-sm font-medium ${mode === 'single' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}>Single</button><button type="button" onClick={() => setMode('multi')} className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${mode === 'multi' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}><LayersIcon size={14} /> Multi</button></div></div>)}
+                            {mode === 'single' && (<div className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 uppercase">Service Type</label><select className="w-full border p-2 rounded mt-1" value={singleData.serviceType} onChange={e => setSingleData({...singleData, serviceType: e.target.value})}>{schedule.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}<option value="Other">Other</option></select></div><div><label className="block text-xs font-bold text-slate-500 uppercase">Parts / Notes</label><textarea className="w-full border p-2 rounded mt-1 h-20" value={singleData.parts} onChange={e => setSingleData({...singleData, parts: e.target.value})} /></div><div><label className="block text-xs font-bold text-slate-500 uppercase">SKU / Ref</label><input className="w-full border p-2 rounded mt-1 font-mono" value={singleData.skuReference} onChange={e => setSingleData({...singleData, skuReference: e.target.value})} /></div><div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Receipt / Image</label>{!singleData.receiptImage ? (<div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition relative"><input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={isCompressing} /><div className="text-slate-500 flex flex-col items-center">{isCompressing ? <span>Compressing image...</span> : <><ImageIcon size={24} className="mb-2"/><span className="text-sm">Click to upload image</span></>}</div></div>) : (<div className="relative inline-block border rounded overflow-hidden group"><img src={singleData.receiptImage} alt="Receipt Preview" className="h-24 w-auto object-cover" /><div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition flex items-center justify-center"><button type="button" onClick={removeImage} className="text-white opacity-0 group-hover:opacity-100 bg-red-600 rounded-full p-1"><XIcon size={16}/></button></div></div>)}</div></div>)}
+                            {mode === 'multi' && (<div className="space-y-6"><div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Select Services</label><div className="flex flex-wrap gap-2">{schedule.map(item => <button key={item.id} type="button" onClick={() => toggleService(item.name)} className={`px-3 py-2 rounded-full border text-sm font-medium ${multiSelection[item.name] ? 'bg-blue-600 text-white' : 'bg-white'}`}>{item.name}</button>)}<button type="button" onClick={() => toggleService('Other')} className={`px-3 py-2 rounded-full border text-sm font-medium ${multiSelection['Other'] ? 'bg-blue-600 text-white' : 'bg-white'}`}>Other</button></div></div>{Object.keys(multiSelection).length > 0 && <div className="space-y-4 border-t pt-4"><h3 className="font-bold text-sm text-slate-700">Details</h3>{Object.keys(multiSelection).map(name => (<div key={name} className="bg-slate-50 p-4 rounded-lg border"><div className="flex justify-between mb-2"><h4 className="font-bold text-blue-800">{name}</h4><button type="button" onClick={() => toggleService(name)} className="text-xs text-red-500">Remove</button></div>{name === 'Other' && <input className="w-full text-sm border p-1.5 rounded mb-2" placeholder="Service Name" value={otherServiceName} onChange={e => setOtherServiceName(e.target.value)} />}<div className="grid grid-cols-2 gap-3"><input className="text-sm border p-1.5 rounded" placeholder="Parts" value={multiSelection[name].parts} onChange={e => updateMultiDetails(name, 'parts', e.target.value)}/><input className="text-sm border p-1.5 rounded font-mono" placeholder="SKU" value={multiSelection[name].sku} onChange={e => updateMultiDetails(name, 'sku', e.target.value)}/></div></div>))}</div>}</div>)}
                             <div><label className="block text-xs font-bold text-slate-500 uppercase">General Notes</label><input className="w-full border p-2 rounded mt-1" value={commonData.notes} onChange={e => setCommonData({...commonData, notes: e.target.value})} /></div>
                             <div className="pt-4"><button type="submit" disabled={isSubmitting || isCompressing || (mode === 'multi' && Object.keys(multiSelection).length === 0)} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold">{isSubmitting ? 'Saving...' : 'Save Record'}</button></div>
                         </form>
@@ -633,30 +512,85 @@
             );
         };
 
-        // C. SCHEDULE MANAGER & D. VEHICLE PROFILE
+        // C. SCHEDULE MANAGER (UPDATED: Per-Item Alert Toggles)
         const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
             const { setDoc, doc } = window.firebaseModules.firestore;
             const [items, setItems] = useState(currentSchedule);
-            const [newItem, setNewItem] = useState({ name: '', intervalMiles: 5000, intervalMonths: 6 });
+            const [newItem, setNewItem] = useState({ name: '', intervalMiles: 5000, intervalMonths: 6, alertEnabled: true });
             
-            const save = async (list) => { 
+            const saveSchedule = async (list) => { 
                 await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule'), { items: list });
                 onUpdate(list); 
             };
-            const handleAdd = () => { const up = [...items, {...newItem, id: Date.now().toString()}]; setItems(up); save(up); setNewItem({name:'', intervalMiles:5000, intervalMonths:6}); };
-            const handleDelete = (id) => { if(confirm('Delete?')) { const up = items.filter(i=>i.id!==id); setItems(up); save(up); } };
-            const handleChange = (id, f, v) => { const up = items.map(i=>i.id===id?{...i,[f]:v}:i); setItems(up); };
+            
+            const handleAdd = () => { 
+                const up = [...items, {...newItem, id: Date.now().toString()}]; 
+                setItems(up); 
+                saveSchedule(up); 
+                setNewItem({name:'', intervalMiles:5000, intervalMonths:6, alertEnabled: true}); 
+            };
+            
+            const handleDelete = (id) => { 
+                if(confirm('Delete?')) { 
+                    const up = items.filter(i=>i.id!==id); 
+                    setItems(up); 
+                    saveSchedule(up); 
+                } 
+            };
+            
+            const handleChange = (id, f, v) => { 
+                const up = items.map(i=>i.id===id?{...i,[f]:v}:i); 
+                setItems(up); 
+                // Auto-save on blur logic handled in render, immediate state update here
+            };
+
+            const toggleAlert = (id) => {
+                const up = items.map(i => i.id === id ? { ...i, alertEnabled: !i.alertEnabled } : i);
+                setItems(up);
+                saveSchedule(up);
+            };
             
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
                         <div className="bg-slate-800 p-4 text-white flex justify-between"><h2 className="font-bold">Manage Schedule</h2><button onClick={onClose}>Close</button></div>
-                        <div className="p-6 overflow-y-auto space-y-4">
-                            <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-200 mb-4">
-                                <strong>Tip:</strong> Set "Miles" to <strong>0</strong> for time-based items like Registration or Insurance.
+                        <div className="p-6 overflow-y-auto space-y-8">
+                            
+                            <div className="space-y-4">
+                                <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-200 mb-4">
+                                    <p><strong>Tip:</strong> Click the <BellIcon size={14} className="inline"/> icon to toggle flashing alerts for each item.</p>
+                                </div>
+                                
+                                {/* Add New */}
+                                <div className="flex gap-2">
+                                    <input placeholder="Name (e.g. Registration)" className="border p-2 flex-grow" value={newItem.name} onChange={e=>setNewItem({...newItem,name:e.target.value})}/>
+                                    <input type="number" placeholder="Mi" className="border p-2 w-20" value={newItem.intervalMiles} onChange={e=>setNewItem({...newItem,intervalMiles:parseInt(e.target.value)})}/>
+                                    <input type="number" placeholder="Mo" className="border p-2 w-20" value={newItem.intervalMonths} onChange={e=>setNewItem({...newItem,intervalMonths:parseInt(e.target.value)})}/>
+                                    <button onClick={handleAdd} className="bg-green-600 text-white px-4 rounded">Add</button>
+                                </div>
+
+                                {/* List */}
+                                <div className="space-y-2">
+                                    {items.map(i => (
+                                        <div key={i.id} className="flex gap-2 items-center border p-2 rounded bg-slate-50">
+                                            <button 
+                                                onClick={() => toggleAlert(i.id)} 
+                                                className={`p-2 rounded-full hover:bg-white transition ${i.alertEnabled !== false ? 'text-blue-600' : 'text-slate-400'}`}
+                                                title={i.alertEnabled !== false ? "Alerts ON" : "Alerts OFF"}
+                                            >
+                                                {i.alertEnabled !== false ? <BellIcon size={20} /> : <BellOffIcon size={20} />}
+                                            </button>
+                                            <input className="flex-grow font-bold bg-transparent" value={i.name} onChange={e=>handleChange(i.id,'name',e.target.value)} onBlur={()=>saveSchedule(items)}/>
+                                            <span className="text-slate-400 text-xs">Every</span>
+                                            <input type="number" className="w-20 border text-center" value={i.intervalMiles} onChange={e=>handleChange(i.id,'intervalMiles',parseInt(e.target.value))} onBlur={()=>saveSchedule(items)}/>
+                                            <span className="text-slate-400 text-xs">mi /</span>
+                                            <input type="number" className="w-16 border text-center" value={i.intervalMonths} onChange={e=>handleChange(i.id,'intervalMonths',parseInt(e.target.value))} onBlur={()=>saveSchedule(items)}/>
+                                            <span className="text-slate-400 text-xs">mo</span>
+                                            <button onClick={()=>handleDelete(i.id)} className="text-red-500 p-2 hover:bg-white rounded-full"><TrashIcon size={18}/></button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex gap-2"><input placeholder="Name (e.g. Registration)" className="border p-2 flex-grow" value={newItem.name} onChange={e=>setNewItem({...newItem,name:e.target.value})}/><input type="number" placeholder="Mi" className="border p-2 w-20" value={newItem.intervalMiles} onChange={e=>setNewItem({...newItem,intervalMiles:parseInt(e.target.value)})}/><input type="number" placeholder="Mo" className="border p-2 w-20" value={newItem.intervalMonths} onChange={e=>setNewItem({...newItem,intervalMonths:parseInt(e.target.value)})}/><button onClick={handleAdd} className="bg-green-600 text-white px-4 rounded">Add</button></div>
-                            <div className="space-y-2">{items.map(i=><div key={i.id} className="flex gap-2 items-center border p-2 rounded"><input className="flex-grow font-bold bg-transparent" value={i.name} onChange={e=>handleChange(i.id,'name',e.target.value)} onBlur={()=>save(items)}/><span className="text-slate-400 text-xs">Every</span><input type="number" className="w-20 border text-center" value={i.intervalMiles} onChange={e=>handleChange(i.id,'intervalMiles',parseInt(e.target.value))} onBlur={()=>save(items)}/><span className="text-slate-400 text-xs">mi /</span><input type="number" className="w-16 border text-center" value={i.intervalMonths} onChange={e=>handleChange(i.id,'intervalMonths',parseInt(e.target.value))} onBlur={()=>save(items)}/><span className="text-slate-400 text-xs">mo</span><button onClick={()=>handleDelete(i.id)} className="text-red-500"><TrashIcon size={16}/></button></div>)}</div>
                         </div>
                     </div>
                 </div>
@@ -841,7 +775,7 @@
             );
         };
 
-        // F. DASHBOARD
+        // F. DASHBOARD (Updated with Alert Banner)
         const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName, isReadOnly, onItemClick }) => {
             const [localOdo, setLocalOdo] = useState(currentOdo);
             const [isSavingOdo, setIsSavingOdo] = useState(false);
@@ -902,6 +836,9 @@
 
             return (
                 <div className="space-y-6">
+                    {/* NEW Alert Banner */}
+                    <AlertBanner items={statusItems} />
+
                     <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                         <div><h3 className="text-lg font-bold text-slate-800">Current Odometer</h3><p className="text-slate-500 text-sm">Status for: <span className="font-semibold">{vehicleName || 'Your Vehicle'}</span></p></div>
                         <div className="flex flex-col items-end gap-1">
@@ -921,7 +858,13 @@
                             onClick={() => onItemClick(item)}
                             className="bg-white border border-slate-100 rounded-lg p-5 shadow-sm hover:shadow-md transition cursor-pointer group"
                         >
-                            <div className="flex justify-between items-start mb-3"><h4 className="font-bold text-slate-700 line-clamp-1 pr-2 group-hover:text-blue-600 transition-colors">{item.name}</h4><span className={`shrink-0 px-2 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${item.status === 'due' ? 'bg-yellow-100 text-yellow-800' : item.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{item.status==='due'?<ClockIcon size={14}/>:item.status==='overdue'?<AlertTriangleIcon size={14}/>:<CheckCircleIcon size={14}/>} {item.status==='due'?'Due Soon':item.status==='overdue'?'Overdue':'Good'}</span></div>
+                            <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-bold text-slate-700 line-clamp-1 pr-2 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                                    {item.name}
+                                    {item.alertEnabled === false && <BellOffIcon size={12} className="text-slate-300"/>}
+                                </h4>
+                                <span className={`shrink-0 px-2 py-1 rounded-full text-xs font-bold border flex items-center gap-1 ${item.status === 'due' ? 'bg-yellow-100 text-yellow-800' : item.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{item.status==='due'?<ClockIcon size={14}/>:item.status==='overdue'?<AlertTriangleIcon size={14}/>:<CheckCircleIcon size={14}/>} {item.status==='due'?'Due Soon':item.status==='overdue'?'Overdue':'Good'}</span>
+                            </div>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between text-slate-500"><span>Last:</span><span className="font-medium text-slate-700">{formatDate(item.lastService.date)}</span></div>
                                 <div className="flex justify-between text-slate-500"><span>Next (Est):</span><span className={`font-medium ${item.status === 'overdue' ? 'text-red-600' : 'text-slate-700'}`}>{formatDate(!isNaN(item.projectedDate.getTime()) ? item.projectedDate.toISOString() : null)}</span></div>
@@ -976,7 +919,7 @@
             const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
             const [currentOdo, setCurrentOdo] = useState(45000);
             const [vehicleProfile, setVehicleProfile] = useState({ ownerName: '', yearMakeModel: '2019 Toyota Camry LE', vin: '', licensePlate: '', registrationNumber: '' });
-            
+
             // Modals
             const [showServiceForm, setShowServiceForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
@@ -1023,7 +966,10 @@
                     try {
                         const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general');
                         const settingsSnap = await getDoc(settingsRef);
-                        if (settingsSnap.exists()) setCurrentOdo(settingsSnap.data().currentOdo || 45000);
+                        if (settingsSnap.exists()) {
+                            const d = settingsSnap.data();
+                            setCurrentOdo(d.currentOdo || 45000);
+                        }
                         else await setDoc(settingsRef, { currentOdo: 45000 });
 
                         const schedRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule');
@@ -1034,7 +980,8 @@
                             const sanitizedItems = rawItems.map(item => ({
                                 ...item,
                                 intervalMiles: Number(item.intervalMiles) >= 0 ? Number(item.intervalMiles) : 5000, 
-                                intervalMonths: Math.max(1, Number(item.intervalMonths) || 6)
+                                intervalMonths: Math.max(1, Number(item.intervalMonths) || 6),
+                                alertEnabled: item.alertEnabled !== false // Default to true if undefined
                             }));
                             setSchedule(sanitizedItems);
                         } else {
@@ -1085,7 +1032,8 @@
                     const guestSchedule = (data.schedule || DEFAULT_SCHEDULE).map(item => ({
                         ...item,
                         intervalMiles: Number(item.intervalMiles) >= 0 ? Number(item.intervalMiles) : 5000,
-                        intervalMonths: Math.max(1, Number(item.intervalMonths) || 6)
+                        intervalMonths: Math.max(1, Number(item.intervalMonths) || 6),
+                        alertEnabled: item.alertEnabled !== false
                     }));
                     setSchedule(guestSchedule);
                     
