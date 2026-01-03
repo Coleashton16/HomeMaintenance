@@ -475,15 +475,51 @@
 
             const items = useMemo(() => schedule.map(i => {
                 const recs = records.filter(r => r.serviceType === i.name).sort((a,b) => b.mileage - a.mileage);
-                const last = recs[0] || { date: null, mileage: 0 };
+                const last = recs[0] || { date: new Date().toISOString(), mileage: 0 };
                 const dist = currentOdo - last.mileage;
-                const rem = (i.intervalMiles || 5000) - dist;
-                const days = i.intervalMiles === 0 ? ((i.intervalMonths * 30) - ((new Date() - new Date(last.date)) / 86400000)) : 999;
+                
                 let status = 'good';
-                if (days < 0 || (i.intervalMiles > 0 && rem < 0)) status = 'overdue';
-                else if (days < 30 || (i.intervalMiles > 0 && rem < 1000)) status = 'due';
-                return { ...i, last, rem, status };
+                let progress = 100;
+                let label = '';
+
+                if (i.intervalMiles > 0) {
+                    const rem = i.intervalMiles - dist;
+                    progress = Math.max(0, Math.min(100, (rem / i.intervalMiles) * 100));
+                    // Format: 4.5k or 500
+                    label = rem >= 1000 ? (rem/1000).toFixed(1) + 'k' : Math.round(rem).toString();
+                    if (rem < 0) {
+                        status = 'overdue';
+                        label = '+' + Math.abs(Math.round(rem)).toLocaleString(); // Show how much overdue
+                    }
+                    else if (rem < 1000) status = 'due';
+                } else {
+                    // Time based logic
+                    const daysSince = (new Date() - new Date(last.date)) / 86400000;
+                    const validDays = isNaN(daysSince) ? 0 : daysSince;
+                    const totalDays = i.intervalMonths * 30;
+                    const remDays = totalDays - validDays;
+                    progress = Math.max(0, Math.min(100, (remDays / totalDays) * 100));
+                    label = Math.round(remDays) + 'd';
+                    if (remDays < 0) status = 'overdue';
+                    else if (remDays < 30) status = 'due';
+                }
+                return { ...i, status, progress, label };
             }), [records, currentOdo, schedule]);
+
+            const Circle = ({ percent, color, text }) => {
+                const r = 20;
+                const c = 2 * Math.PI * r;
+                const offset = c - (percent / 100) * c;
+                return (
+                    <div className="relative flex items-center justify-center w-12 h-12">
+                        <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" className="text-gray-100" />
+                            <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round" className={color} />
+                        </svg>
+                        <span className={`absolute text-[10px] font-black ${color.replace('text-', 'text-opacity-80 text-')}`}>{text}</span>
+                    </div>
+                );
+            };
 
             return (
                 <div className="pb-24">
@@ -499,29 +535,19 @@
                         <div className="text-sm font-bold text-gray-400 mt-1">MILES</div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {items.map(i => (
-                            <div key={i.id} onClick={() => onItemClick(i)} className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 active:scale-[0.98] transition-transform relative overflow-hidden">
-                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${i.status === 'overdue' ? 'bg-red-500' : i.status === 'due' ? 'bg-yellow-400' : 'bg-green-500'}`}></div>
-                                <div className="flex justify-between items-center mb-3 pl-2">
-                                    <span className="font-bold text-lg">{i.name}</span>
-                                    {i.alertEnabled === false && <BellOffIcon size={14} className="text-gray-300"/>}
-                                </div>
-                                <div className="pl-2 space-y-1">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">Last</span>
-                                        <span className="font-mono font-bold">{formatDate(i.last.date)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">{i.intervalMiles === 0 ? 'Due' : 'Rem'}</span>
-                                        <span className={`font-mono font-bold ${i.status !== 'good' ? 'text-red-500' : 'text-gray-900'}`}>
-                                            {i.intervalMiles === 0 ? Math.max(0, Math.round(i.rem)) + ' days' : i.rem.toLocaleString() + ' mi'}
-                                        </span>
+                    <div className="grid grid-cols-1 gap-3">
+                        {items.map(i => {
+                            const color = i.status === 'overdue' ? 'text-red-500' : i.status === 'due' ? 'text-yellow-500' : 'text-green-500';
+                            return (
+                                <div key={i.id} onClick={() => onItemClick(i)} className="bg-white p-4 rounded-2xl shadow-soft border border-gray-100 active:scale-[0.98] transition-transform flex items-center justify-between">
+                                    <span className="font-bold text-lg text-gray-800">{i.name}</span>
+                                    <div className="flex items-center gap-4">
+                                        {i.alertEnabled === false && <BellOffIcon size={16} className="text-gray-300"/>}
+                                        <Circle percent={i.progress} color={color} text={i.label} />
                                     </div>
                                 </div>
-                                {i.intervalMiles > 0 && <div className="mt-3 pl-2 h-1 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full rounded-full ${i.status === 'good' ? 'bg-green-500' : i.status === 'due' ? 'bg-yellow-400' : 'bg-red-500'}`} style={{width: `${Math.min(100, Math.max(0, (i.rem / i.intervalMiles) * 100))}%`}}></div></div>}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -544,6 +570,28 @@
                         </div>
                     ))}
                     {sorted.length === 0 && <div className="text-center text-gray-400 py-10">No records</div>}
+                </div>
+            );
+        };
+
+        const ReceiptGallery = ({ records, onViewImage }) => {
+            const withReceipts = records.filter(r => r.receiptImage).sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            if (withReceipts.length === 0) return <div className="text-center text-gray-400 py-10 font-bold">No receipts found</div>;
+
+            return (
+                <div className="grid grid-cols-2 gap-4 pb-24">
+                    {withReceipts.map(r => (
+                        <div key={r.id} onClick={() => onViewImage(r.receiptImage, `${r.serviceType} (${formatDate(r.date)})`)} className="bg-white p-2 rounded-2xl shadow-soft border border-gray-100 active:scale-95 transition-transform">
+                            <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 mb-2">
+                                <img src={r.receiptImage} className="w-full h-full object-cover" loading="lazy" />
+                            </div>
+                            <div className="px-1">
+                                <div className="font-bold text-xs truncate">{r.serviceType}</div>
+                                <div className="text-[10px] text-gray-400 font-mono">{formatDate(r.date)}</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             );
         };
@@ -618,19 +666,21 @@
 
                     <div className="p-4 max-w-lg mx-auto">
                         <div className="flex bg-gray-200 p-1 rounded-xl mb-6 font-bold text-sm no-print">
-                            <button onClick={() => setView('dash')} className={`flex-1 py-2 rounded-lg ${view === 'dash' ? 'bg-white shadow' : 'text-gray-500'}`}>Dash</button>
-                            <button onClick={() => setView('audit')} className={`flex-1 py-2 rounded-lg ${view === 'audit' ? 'bg-white shadow' : 'text-gray-500'}`}>Log</button>
+                            <button onClick={() => setView('dash')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'dash' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Dash</button>
+                            <button onClick={() => setView('audit')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'audit' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Log</button>
+                            <button onClick={() => setView('receipts')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'receipts' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Receipts</button>
                         </div>
 
                         {view === 'dash' && <Dashboard records={data.records} currentOdo={data.odo} onUpdateOdo={updateOdo} schedule={data.schedule} vehicleName={data.profile.yearMakeModel} isReadOnly={isGuest} onItemClick={i => setModals({...modals, history: i})} />}
                         {view === 'audit' && <AuditLog records={data.records} onEdit={r => { setEditRec(r); setModals({...modals, form: true}); }} onDelete={delRec} isReadOnly={isGuest} />}
+                        {view === 'receipts' && <ReceiptGallery records={data.records} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
                     </div>
 
                     {!isGuest && (
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-2 flex justify-around items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] no-print">
-                            <button onClick={() => setModals({...modals, car: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black"><BadgeIcon size={24}/><span className="text-[10px] font-bold mt-1">CAR</span></button>
-                            <button onClick={() => { setEditRec(null); setModals({...modals, form: true}); }} className="flex flex-col items-center justify-center bg-black text-white w-14 h-14 rounded-2xl -mt-8 shadow-xl shadow-gray-400/50"><PlusCircleIcon size={28}/></button>
-                            <button onClick={() => setModals({...modals, sched: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black"><SettingsIcon size={24}/><span className="text-[10px] font-bold mt-1">SCHED</span></button>
+                        <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-2 flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] no-print">
+                            <button onClick={() => setModals({...modals, car: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><BadgeIcon size={24}/><span className="text-[10px] font-bold mt-1">CAR</span></button>
+                            <button onClick={() => { setEditRec(null); setModals({...modals, form: true}); }} className="flex flex-col items-center justify-center bg-black text-white w-14 h-14 rounded-2xl -mt-8 shadow-xl shadow-gray-400/50 active:scale-95 transition-transform"><PlusCircleIcon size={28}/></button>
+                            <button onClick={() => setModals({...modals, sched: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><SettingsIcon size={24}/><span className="text-[10px] font-bold mt-1">SCHED</span></button>
                         </div>
                     )}
                     
