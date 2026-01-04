@@ -91,25 +91,32 @@
         const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
         const SaveIcon = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
         const PrinterIcon = (p) => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Icon>;
-        const SettingsIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+        const SettingsIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
         const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
         const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
         const BadgeIcon = (p) => <Icon {...p}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78"/></Icon>;
-        const LayersIcon = (p) => <Icon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Icon>;
         const KeyIcon = (p) => <Icon {...p}><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></Icon>;
-        const ShieldIcon = (p) => <Icon {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Icon>;
-        const CalendarIcon = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Icon>;
-        const ClipboardCheckIcon = (p) => <Icon {...p}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><polyline points="16 13 19 16 23 12"/></Icon>;
         const XIcon = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
         const ImageIcon = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
         const EyeIcon = (p) => <Icon {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
         const BellIcon = (p) => <Icon {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></Icon>;
         const BellOffIcon = (p) => <Icon {...p}><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/><path d="M8.668 3.332a6.002 6.002 0 0 1 8.332 3.668 9 9 0 0 1 1 5H21s-2.029.029-2.923 2.502"/><path d="M3 12h.262c.307.72.637 1.444 1.738 2.05"/></Icon>;
+        const HammerIcon = (p) => <Icon {...p}><path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H14.14c-.83 0-1.64.32-2.25.92L9.64 10"/><path d="m22.36 6.36-1.72-1.72"/></Icon>;
+        const CameraIcon = (p) => <Icon {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></Icon>;
+        const AlertOctagonIcon = (p) => <Icon {...p}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>;
 
         // --- 3. CONFIG & UTILS ---
         const { useState, useEffect, useMemo, useCallback } = React;
         const EST_YEARLY_MILEAGE = 20000;
-        const EST_DAILY_MILEAGE = EST_YEARLY_MILEAGE / 365;
+        
+        // Questions for severity score calculation
+        const SEVERITY_QUESTIONS = [
+            { id: 'safety', text: 'Does this affect safety (brakes, tires, lights)?', weight: 40 },
+            { id: 'leaks', text: 'Are there active fluid leaks?', weight: 25 },
+            { id: 'noise', text: 'Is there a new strange noise or vibration?', weight: 15 },
+            { id: 'function', text: 'Is a feature broken (AC, windows, locks)?', weight: 10 },
+            { id: 'visual', text: 'Is the damage clearly visible from 10ft?', weight: 10 },
+        ];
 
         const DEFAULT_SCHEDULE = [
             { id: 'oil', name: 'Engine Oil', intervalMiles: 10000, intervalMonths: 12, alertEnabled: true },
@@ -148,6 +155,18 @@
                 };
                 reader.onerror = (err) => reject(err);
             });
+        };
+
+        const getSeverityColor = (score) => {
+            if (score >= 60) return 'text-red-600 bg-red-50 border-red-200';
+            if (score >= 30) return 'text-orange-600 bg-orange-50 border-orange-200';
+            return 'text-blue-600 bg-blue-50 border-blue-200';
+        };
+
+        const getSeverityLabel = (score) => {
+            if (score >= 60) return 'Critical';
+            if (score >= 30) return 'Moderate';
+            return 'Low';
         };
 
         // --- 4. COMPONENTS ---
@@ -189,6 +208,296 @@
             );
         };
 
+        // --- NEW DAMAGE REPORTING COMPONENTS ---
+
+        const DamageForm = ({ user, db, appId, onClose, onSuccess }) => {
+            const { addDoc, collection, serverTimestamp } = window.firebaseModules.firestore;
+            const [step, setStep] = useState(1);
+            const [data, setData] = useState({ title: '', desc: '', location: '', answers: {}, images: [] });
+            const [loading, setLoading] = useState(false);
+
+            const handleAnswer = (qid, val) => setData(p => ({ ...p, answers: { ...p.answers, [qid]: val } }));
+            
+            const handleImage = async (e) => {
+                if (e.target.files?.[0]) {
+                    setLoading(true);
+                    try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
+                }
+            };
+
+            const calculateScore = () => {
+                return SEVERITY_QUESTIONS.reduce((acc, q) => acc + (data.answers[q.id] ? q.weight : 0), 0);
+            };
+
+            const submit = async () => {
+                setLoading(true);
+                try {
+                    const score = calculateScore();
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports'), {
+                        ...data,
+                        severityScore: score,
+                        status: 'open',
+                        date: new Date().toISOString(),
+                        timestamp: serverTimestamp()
+                    });
+                    onSuccess();
+                    onClose();
+                } catch(e) { alert(e.message); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                    <div className="p-4 border-b flex justify-between items-center">
+                        <button onClick={onClose} className="text-gray-500 font-bold">Cancel</button>
+                        <h2 className="font-black text-lg">Report Damage</h2>
+                        <div className="w-16"></div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {step === 1 && (
+                            <div className="space-y-4">
+                                <div><label className="text-xs font-bold text-gray-400 uppercase">What's wrong?</label><input className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="e.g. Cracked Windshield" value={data.title} onChange={e=>setData({...data, title:e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-gray-400 uppercase">Location on Vehicle</label><input className="w-full p-4 bg-gray-50 rounded-xl" placeholder="e.g. Front Driver Side" value={data.location} onChange={e=>setData({...data, location:e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-gray-400 uppercase">Description</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="Details..." value={data.desc} onChange={e=>setData({...data, desc:e.target.value})} /></div>
+                                <button disabled={!data.title || !data.desc} onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Assessment</button>
+                            </div>
+                        )}
+                        {step === 2 && (
+                            <div className="space-y-6">
+                                <div className="text-xl font-black mb-4">Assessment</div>
+                                {SEVERITY_QUESTIONS.map(q => (
+                                    <div key={q.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                        <span className="font-medium text-sm pr-4">{q.text}</span>
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>handleAnswer(q.id, true)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === true ? 'bg-red-500 text-white' : 'bg-white text-gray-500 shadow'}`}>Yes</button>
+                                            <button onClick={()=>handleAnswer(q.id, false)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === false ? 'bg-green-500 text-white' : 'bg-white text-gray-500 shadow'}`}>No</button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button disabled={Object.keys(data.answers).length < SEVERITY_QUESTIONS.length} onClick={() => setStep(3)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Evidence</button>
+                            </div>
+                        )}
+                        {step === 3 && (
+                            <div className="space-y-4">
+                                <div className="text-xl font-black mb-2">Evidence</div>
+                                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-sm font-medium mb-4">At least one photo is required to submit a report.</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {data.images.map((img, i) => (
+                                        <div key={i} className="aspect-square rounded-xl overflow-hidden relative shadow-sm">
+                                            <img src={img} className="w-full h-full object-cover" />
+                                            <button onClick={()=>setData(p=>({...p, images: p.images.filter((_, idx)=>idx!==i)}))} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><XIcon size={12}/></button>
+                                        </div>
+                                    ))}
+                                    <label className="aspect-square rounded-xl bg-gray-100 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform">
+                                        <CameraIcon size={32} className="text-gray-400 mb-2" />
+                                        <span className="text-xs font-bold text-gray-400">{loading ? '...' : 'Add Photo'}</span>
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleImage} disabled={loading} />
+                                    </label>
+                                </div>
+                                <div className="mt-8">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <span className="font-bold text-gray-400 text-sm uppercase">Severity Score</span>
+                                        <span className="text-2xl font-black">{calculateScore()} / 100</span>
+                                    </div>
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-blue-500 via-orange-500 to-red-600 transition-all duration-500" style={{width: `${calculateScore()}%`}}></div>
+                                    </div>
+                                </div>
+                                <button disabled={data.images.length === 0 || loading} onClick={submit} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">{loading ? 'Saving...' : 'Submit Report'}</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const RepairForm = ({ user, db, appId, damageReport, onClose, onSuccess }) => {
+            const { updateDoc, doc, serverTimestamp } = window.firebaseModules.firestore;
+            const [data, setData] = useState({ cost: '', notes: '', images: [] });
+            const [loading, setLoading] = useState(false);
+
+            const handleImage = async (e) => {
+                if (e.target.files?.[0]) {
+                    setLoading(true);
+                    try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
+                }
+            };
+
+            const submit = async () => {
+                setLoading(true);
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'damageReports', damageReport.id), {
+                        status: 'repaired',
+                        repairDetails: {
+                            ...data,
+                            date: new Date().toISOString(),
+                            cost: Number(data.cost)
+                        }
+                    });
+                    onSuccess();
+                    onClose();
+                } catch(e) { alert(e.message); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                    <div className="p-4 border-b flex justify-between items-center bg-green-50">
+                        <button onClick={onClose} className="text-green-700 font-bold">Cancel</button>
+                        <h2 className="font-black text-lg text-green-900">Log Repair</h2>
+                        <div className="w-16"></div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="bg-gray-50 p-4 rounded-xl mb-4">
+                            <div className="text-xs font-bold text-gray-400 uppercase">Fixing</div>
+                            <div className="font-bold text-lg">{damageReport.title}</div>
+                        </div>
+
+                        <div><label className="text-xs font-bold text-gray-400 uppercase">Repair Cost</label><input type="number" className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="0.00" value={data.cost} onChange={e=>setData({...data, cost:e.target.value})} /></div>
+                        <div><label className="text-xs font-bold text-gray-400 uppercase">Notes / Methodology</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="How was it fixed?" value={data.notes} onChange={e=>setData({...data, notes:e.target.value})} /></div>
+                        
+                        <div>
+                            <div className="text-xs font-bold text-gray-400 uppercase mb-2">Proof of Repair (Required)</div>
+                            <div className="grid grid-cols-2 gap-4">
+                                {data.images.map((img, i) => (
+                                    <div key={i} className="aspect-square rounded-xl overflow-hidden relative shadow-sm">
+                                        <img src={img} className="w-full h-full object-cover" />
+                                        <button onClick={()=>setData(p=>({...p, images: p.images.filter((_, idx)=>idx!==i)}))} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><XIcon size={12}/></button>
+                                    </div>
+                                ))}
+                                <label className="aspect-square rounded-xl bg-gray-100 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform">
+                                    <CameraIcon size={32} className="text-gray-400 mb-2" />
+                                    <span className="text-xs font-bold text-gray-400">{loading ? '...' : 'Add Photo'}</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleImage} disabled={loading} />
+                                </label>
+                            </div>
+                        </div>
+
+                        <button disabled={data.images.length === 0 || loading || !data.cost} onClick={submit} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50 shadow-lg shadow-green-200">{loading ? 'Saving...' : 'Complete Repair'}</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const DamageList = ({ reports, onReportDamage, onViewReport }) => {
+            const active = reports.filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore);
+            const history = reports.filter(r => r.status === 'repaired').sort((a,b) => new Date(b.repairDetails.date) - new Date(a.repairDetails.date));
+
+            return (
+                <div className="pb-24 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-black">Active Damage</h2>
+                        <button onClick={onReportDamage} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg shadow-red-200 active:scale-95 transition-transform flex items-center gap-2"><AlertOctagonIcon size={16}/> Report</button>
+                    </div>
+                    
+                    {active.length === 0 ? (
+                        <div className="bg-green-50 text-green-800 p-8 rounded-2xl text-center border border-green-100">
+                            <CheckCircleIcon size={48} className="mx-auto mb-2 opacity-50"/>
+                            <div className="font-bold">All Good!</div>
+                            <div className="text-sm opacity-70">No active damage reported.</div>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {active.map(r => (
+                                <div key={r.id} onClick={() => onViewReport(r)} className={`p-4 rounded-2xl border bg-white shadow-soft flex gap-4 ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
+                                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                                        {r.images[0] && <img src={r.images[0]} className="w-full h-full object-cover" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <div className="font-bold truncate">{r.title}</div>
+                                            <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${getSeverityColor(r.severityScore)}`}>{getSeverityLabel(r.severityScore)}</div>
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-1 truncate">{r.desc}</div>
+                                        <div className="text-xs font-mono text-gray-400 mt-2">{formatDate(r.date)}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {history.length > 0 && (
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-400 uppercase mb-4">Repair History</h2>
+                            <div className="space-y-3 opacity-70">
+                                {history.map(r => (
+                                    <div key={r.id} onClick={() => onViewReport(r)} className="p-4 rounded-2xl border bg-gray-50 flex gap-4 items-center">
+                                        <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircleIcon size={20}/></div>
+                                        <div className="flex-1">
+                                            <div className="font-bold line-through text-gray-500">{r.title}</div>
+                                            <div className="text-xs text-gray-400">Repaired {formatDate(r.repairDetails.date)} • ${r.repairDetails.cost}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const DamageDetailModal = ({ report, onClose, onRepair }) => {
+            return (
+                <div className="fixed inset-0 bg-white z-40 flex flex-col">
+                    <div className="relative h-64 bg-gray-900">
+                        <img src={report.images[0]} className="w-full h-full object-cover opacity-80" />
+                        <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"><XIcon size={24}/></button>
+                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent text-white">
+                            <div className="text-xs font-bold opacity-75 uppercase mb-1">{report.location}</div>
+                            <h1 className="text-3xl font-black leading-none">{report.title}</h1>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                        {report.status === 'open' && (
+                            <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${getSeverityColor(report.severityScore)}`}>
+                                <div>
+                                    <div className="text-xs font-bold uppercase opacity-75">Severity Score</div>
+                                    <div className="text-3xl font-black">{report.severityScore}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-bold text-lg">{getSeverityLabel(report.severityScore)}</div>
+                                    <div className="text-xs opacity-75">Action Required</div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                            <h3 className="font-bold text-gray-900 mb-2">Description</h3>
+                            <p className="text-gray-600 leading-relaxed">{report.desc}</p>
+                        </div>
+
+                        {report.status === 'open' ? (
+                            <button onClick={() => onRepair(report)} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                                <HammerIcon /> Mark as Repaired
+                            </button>
+                        ) : (
+                            <div className="bg-green-50 border border-green-200 p-6 rounded-2xl">
+                                <div className="flex items-center gap-2 text-green-800 font-bold mb-4"><CheckCircleIcon /> Repaired on {formatDate(report.repairDetails.date)}</div>
+                                <div className="text-sm text-green-700 mb-4">{report.repairDetails.notes}</div>
+                                <div className="font-mono text-green-900 font-bold text-xl">${report.repairDetails.cost.toFixed(2)}</div>
+                                {report.repairDetails.images?.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-green-200">
+                                        <div className="text-xs font-bold uppercase text-green-800 mb-2">Repair Proof</div>
+                                        <div className="flex gap-2 overflow-x-auto pb-2">
+                                            {report.repairDetails.images.map((img, i) => <img key={i} src={img} className="h-20 w-20 rounded-lg object-cover border border-green-200" />)}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        <div className="mt-8">
+                            <div className="text-xs font-bold text-gray-400 uppercase mb-3">Original Photos</div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {report.images.map((img, i) => (
+                                    <img key={i} src={img} className="w-full aspect-square object-cover rounded-xl border border-gray-200" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- EXISTING UTILS ---
         const ItemHistoryModal = ({ item, records, onClose, onViewImage }) => {
             const historyRecords = records.filter(r => r.serviceType === item.name).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return (
@@ -469,9 +778,11 @@
             );
         };
 
-        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName, isReadOnly, onItemClick }) => {
+        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName, isReadOnly, onItemClick, damageReports = [], onViewDamage }) => {
             const [odo, setOdo] = useState(currentOdo);
             useEffect(() => setOdo(currentOdo), [currentOdo]);
+
+            const activeDamage = useMemo(() => (damageReports || []).filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore), [damageReports]);
 
             const items = useMemo(() => schedule.map(i => {
                 const recs = records.filter(r => r.serviceType === i.name).sort((a,b) => b.mileage - a.mileage);
@@ -485,15 +796,13 @@
                 if (i.intervalMiles > 0) {
                     const rem = i.intervalMiles - dist;
                     progress = Math.max(0, Math.min(100, (rem / i.intervalMiles) * 100));
-                    // Format: 4.5k or 500
                     label = rem >= 1000 ? (rem/1000).toFixed(1) + 'k' : Math.round(rem).toString();
                     if (rem < 0) {
                         status = 'overdue';
-                        label = '+' + Math.abs(Math.round(rem)).toLocaleString(); // Show how much overdue
+                        label = '+' + Math.abs(Math.round(rem)).toLocaleString(); 
                     }
                     else if (rem < 1000) status = 'due';
                 } else {
-                    // Time based logic
                     const daysSince = (new Date() - new Date(last.date)) / 86400000;
                     const validDays = isNaN(daysSince) ? 0 : daysSince;
                     const totalDays = i.intervalMonths * 30;
@@ -524,6 +833,30 @@
             return (
                 <div className="pb-24">
                     <AlertBanner items={items} />
+
+                    {/* Active Damage Block */}
+                    {activeDamage.length > 0 && (
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-2 px-1">
+                                <div className="bg-red-100 p-1 rounded-full animate-pulse"><div className="w-2 h-2 bg-red-600 rounded-full"></div></div>
+                                <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Active Issues ({activeDamage.length})</span>
+                            </div>
+                            <div className="space-y-2">
+                                {activeDamage.map(r => (
+                                    <div key={r.id} onClick={() => onViewDamage(r)} className={`bg-white p-4 rounded-2xl shadow-soft border flex items-center gap-3 active:scale-[0.98] transition-transform ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
+                                         <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                                            {r.images[0] ? <img src={r.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><AlertOctagonIcon size={20}/></div>}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-gray-900 truncate">{r.title}</div>
+                                            <div className="text-xs text-gray-500 truncate">{r.location} • <span className={getSeverityColor(r.severityScore).split(' ')[0]}>{getSeverityLabel(r.severityScore)}</span></div>
+                                        </div>
+                                        <div className="text-gray-300"><Icon><polyline points="9 18 15 12 9 6"/></Icon></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     
                     <div className="mb-8 text-center">
                         <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{vehicleName}</div>
@@ -611,8 +944,8 @@
             const [user, setUser] = useState(null);
             const [view, setView] = useState('dash');
             const [isGuest, setIsGuest] = useState(false);
-            const [data, setData] = useState({ records: [], schedule: DEFAULT_SCHEDULE, odo: 0, profile: {} });
-            const [modals, setModals] = useState({ form: false, sched: false, car: false, share: false, audit: false, img: null, history: null });
+            const [data, setData] = useState({ records: [], schedule: DEFAULT_SCHEDULE, odo: 0, profile: {}, damageReports: [] });
+            const [modals, setModals] = useState({ form: false, sched: false, car: false, share: false, audit: false, img: null, history: null, damage: false, damageDetail: null, repair: null });
             const [editRec, setEditRec] = useState(null);
 
             useEffect(() => {
@@ -622,7 +955,9 @@
 
             useEffect(() => {
                 if (!user || isGuest || user.email === 'openaccess@open.com') return;
-                const unsub = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords')), s => setData(p => ({ ...p, records: s.docs.map(d => ({id:d.id, ...d.data()})) })));
+                const unsubRecs = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords')), s => setData(p => ({ ...p, records: s.docs.map(d => ({id:d.id, ...d.data()})) })));
+                const unsubDamage = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports')), s => setData(p => ({ ...p, damageReports: s.docs.map(d => ({id:d.id, ...d.data()})) })));
+
                 const load = async () => {
                     const [gen, sch, pro] = await Promise.all(['general', 'maintenanceSchedule', 'vehicleProfile'].map(k => getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', k))));
                     setData(p => ({
@@ -632,7 +967,7 @@
                         profile: pro.data() || { yearMakeModel: 'My Car' }
                     }));
                 }; load();
-                return () => unsub();
+                return () => { unsubRecs(); unsubDamage(); };
             }, [user, isGuest]);
 
             const guestLogin = async (code) => {
@@ -641,7 +976,7 @@
                     const s = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code));
                     if (!s.exists() || Date.now() > s.data().expiresAt) throw new Error("Invalid Code");
                     setIsGuest(true);
-                    setData({ records: s.data().records || [], schedule: s.data().schedule || DEFAULT_SCHEDULE, odo: s.data().odo || 0, profile: s.data().profile || {} });
+                    setData({ records: s.data().records || [], schedule: s.data().schedule || DEFAULT_SCHEDULE, odo: s.data().odo || 0, profile: s.data().profile || {}, damageReports: s.data().damageReports || [] });
                 } catch (e) { throw e; }
             };
 
@@ -665,15 +1000,17 @@
                     </nav>
 
                     <div className="p-4 max-w-lg mx-auto">
-                        <div className="flex bg-gray-200 p-1 rounded-xl mb-6 font-bold text-sm no-print">
-                            <button onClick={() => setView('dash')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'dash' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Dash</button>
-                            <button onClick={() => setView('audit')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'audit' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Log</button>
-                            <button onClick={() => setView('receipts')} className={`flex-1 py-2 rounded-lg transition-all ${view === 'receipts' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Receipts</button>
+                        <div className="flex bg-gray-200 p-1 rounded-xl mb-6 font-bold text-[10px] sm:text-xs no-print overflow-x-auto">
+                            <button onClick={() => setView('dash')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'dash' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Dash</button>
+                            <button onClick={() => setView('audit')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'audit' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Log</button>
+                            <button onClick={() => setView('receipts')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'receipts' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Receipts</button>
+                            <button onClick={() => setView('damage')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'damage' ? 'bg-white shadow text-red-600' : 'text-gray-500'}`}>Damage</button>
                         </div>
 
-                        {view === 'dash' && <Dashboard records={data.records} currentOdo={data.odo} onUpdateOdo={updateOdo} schedule={data.schedule} vehicleName={data.profile.yearMakeModel} isReadOnly={isGuest} onItemClick={i => setModals({...modals, history: i})} />}
+                        {view === 'dash' && <Dashboard records={data.records} currentOdo={data.odo} onUpdateOdo={updateOdo} schedule={data.schedule} vehicleName={data.profile.yearMakeModel} isReadOnly={isGuest} onItemClick={i => setModals({...modals, history: i})} damageReports={data.damageReports} onViewDamage={r => setModals({...modals, damageDetail: r})} />}
                         {view === 'audit' && <AuditLog records={data.records} onEdit={r => { setEditRec(r); setModals({...modals, form: true}); }} onDelete={delRec} isReadOnly={isGuest} />}
                         {view === 'receipts' && <ReceiptGallery records={data.records} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
+                        {view === 'damage' && <DamageList reports={data.damageReports} onReportDamage={() => setModals({...modals, damage: true})} onViewReport={(r) => setModals({...modals, damageDetail: r})} />}
                     </div>
 
                     {!isGuest && (
@@ -694,6 +1031,9 @@
                     {modals.audit && <FullAuditReport records={data.records} vehicleProfile={data.profile} onClose={() => setModals({...modals, audit: false})} />}
                     {modals.history && <ItemHistoryModal item={modals.history} records={data.records} onClose={() => setModals({...modals, history: null})} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
                     {modals.img && <ImageViewerModal src={modals.img.src} title={modals.img.t} onClose={() => setModals({...modals, img: null})} />}
+                    {modals.damage && <DamageForm user={user} db={db} appId={appId} onClose={() => setModals({...modals, damage: false})} onSuccess={()=>{}} />}
+                    {modals.damageDetail && <DamageDetailModal report={modals.damageDetail} onClose={() => setModals({...modals, damageDetail: null})} onRepair={(r) => { setModals({...modals, damageDetail: null, repair: r}); }} />}
+                    {modals.repair && <RepairForm user={user} db={db} appId={appId} damageReport={modals.repair} onClose={() => setModals({...modals, repair: null})} onSuccess={()=>{}} />}
                 </div>
             );
         };
