@@ -1,361 +1,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HTMS</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
-                    },
-                    boxShadow: {
-                        'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
-                    }
-                }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HTMS</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+            },
+            boxShadow: {
+                'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
             }
         }
-    </script>
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        input, select, textarea, button { touch-action: manipulation; }
-        
-        @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-        .animate-pulse-subtle { animation: pulse-subtle 2s infinite; }
+    }
+}
+</script>
 
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; color: black; }
-            .print-only { display: block !important; }
-            .audit-record { break-inside: avoid; border: 1px solid #ddd; margin-bottom: 1em; }
-        }
-    </style>
+<!-- Import Map for React ES Modules -->
+<script type="importmap">
+{
+    "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
+    }
+}
+</script>
+
+<!-- Babel for JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    input, select, textarea, button { touch-action: manipulation; }
+    
+    @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+    .animate-pulse-subtle { animation: pulse-subtle 2s infinite; }
+
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white; color: black; }
+        .print-only { display: block !important; }
+        .audit-record { break-inside: avoid; border: 1px solid #ddd; margin-bottom: 1em; }
+    }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-900 h-full selection:bg-blue-100">
-    <div id="root"></div>
+<div id="root"></div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!-- Main Application Script -->
+<script type="text/babel" data-type="module">
+    import { useState, useEffect, useMemo, useCallback } from "react";
+    import { createRoot } from "react-dom/client";
+    
+    // Firebase Imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        window.firebaseModules = {
-            initializeApp,
-            auth: { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously },
-            firestore: { getFirestore, collection, addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, serverTimestamp }
-        };
-        window.dispatchEvent(new Event('firebase-ready'));
-    </script>
+    // --- 1. ICONS ---
+    const Icon = ({ children, className, ...props }) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+    );
+    const CarIcon = (p) => <Icon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></Icon>;
+    const LogOutIcon = (p) => <Icon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></Icon>;
+    const PlusCircleIcon = (p) => <Icon {...p}><path d="M5 12h14"/><path d="M12 5v14"/></Icon>;
+    const CheckCircleIcon = (p) => <Icon {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+    const AlertTriangleIcon = (p) => <Icon {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></Icon>;
+    const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+    const SaveIcon = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
+    const PrinterIcon = (p) => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Icon>;
+    const SettingsIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+    const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+    const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
+    const BadgeIcon = (p) => <Icon {...p}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78"/></Icon>;
+    const KeyIcon = (p) => <Icon {...p}><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></Icon>;
+    const XIcon = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
+    const ImageIcon = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
+    const EyeIcon = (p) => <Icon {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
+    const BellIcon = (p) => <Icon {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></Icon>;
+    const BellOffIcon = (p) => <Icon {...p}><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/><path d="M8.668 3.332a6.002 6.002 0 0 1 8.332 3.668 9 9 0 0 1 1 5H21s-2.029.029-2.923 2.502"/><path d="M3 12h.262c.307.72.637 1.444 1.738 2.05"/></Icon>;
+    const HammerIcon = (p) => <Icon {...p}><path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H14.14c-.83 0-1.64.32-2.25.92L9.64 10"/><path d="m22.36 6.36-1.72-1.72"/></Icon>;
+    const CameraIcon = (p) => <Icon {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></Icon>;
+    const AlertOctagonIcon = (p) => <Icon {...p}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>;
 
-    <!-- Main Application Script -->
-    <script type="text/babel">
-        // --- 1. BOOTSTRAP ---
-        const AppWrapper = () => {
-            const [ready, setReady] = React.useState(!!window.firebaseModules);
-            
-            React.useEffect(() => {
-                if (window.firebaseModules) setReady(true);
-                else {
-                    const handler = () => setReady(true);
-                    window.addEventListener('firebase-ready', handler);
-                    return () => window.removeEventListener('firebase-ready', handler);
-                }
-            }, []);
+    // --- 2. CONFIG & UTILS ---
+    const EST_YEARLY_MILEAGE = 20000;
+    
+    // Questions for severity score calculation
+    const SEVERITY_QUESTIONS = [
+        { id: 'safety', text: 'Does this affect safety (brakes, tires, lights)?', weight: 40 },
+        { id: 'leaks', text: 'Are there active fluid leaks?', weight: 25 },
+        { id: 'noise', text: 'Is there a new strange noise or vibration?', weight: 15 },
+        { id: 'function', text: 'Is a feature broken (AC, windows, locks)?', weight: 10 },
+        { id: 'visual', text: 'Is the damage clearly visible from 10ft?', weight: 10 },
+    ];
 
-            if (!ready) return <div className="h-screen flex items-center justify-center text-gray-300"><div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div></div>;
-            return <App />;
-        };
+    const DEFAULT_SCHEDULE = [
+        { id: 'oil', name: 'Engine Oil', intervalMiles: 10000, intervalMonths: 12, alertEnabled: true },
+        { id: 'rotate', name: 'Rotate Tires', intervalMiles: 5000, intervalMonths: 6, alertEnabled: true },
+        { id: 'cabin', name: 'Cabin Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
+        { id: 'engine_air', name: 'Air Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
+        { id: 'reg', name: 'Registration', intervalMiles: 0, intervalMonths: 12, alertEnabled: true },
+    ];
 
-        // --- 2. ICONS ---
-        const Icon = ({ children, className, ...props }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
-        );
-        const CarIcon = (p) => <Icon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></Icon>;
-        const LogOutIcon = (p) => <Icon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></Icon>;
-        const PlusCircleIcon = (p) => <Icon {...p}><path d="M5 12h14"/><path d="M12 5v14"/></Icon>;
-        const CheckCircleIcon = (p) => <Icon {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
-        const AlertTriangleIcon = (p) => <Icon {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></Icon>;
-        const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
-        const SaveIcon = (p) => <Icon {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
-        const PrinterIcon = (p) => <Icon {...p}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Icon>;
-        const SettingsIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
-        const TrashIcon = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
-        const EditIcon = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
-        const BadgeIcon = (p) => <Icon {...p}><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78"/></Icon>;
-        const KeyIcon = (p) => <Icon {...p}><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></Icon>;
-        const XIcon = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
-        const ImageIcon = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></Icon>;
-        const EyeIcon = (p) => <Icon {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Icon>;
-        const BellIcon = (p) => <Icon {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></Icon>;
-        const BellOffIcon = (p) => <Icon {...p}><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/><path d="M8.668 3.332a6.002 6.002 0 0 1 8.332 3.668 9 9 0 0 1 1 5H21s-2.029.029-2.923 2.502"/><path d="M3 12h.262c.307.72.637 1.444 1.738 2.05"/></Icon>;
-        const HammerIcon = (p) => <Icon {...p}><path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H14.14c-.83 0-1.64.32-2.25.92L9.64 10"/><path d="m22.36 6.36-1.72-1.72"/></Icon>;
-        const CameraIcon = (p) => <Icon {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></Icon>;
-        const AlertOctagonIcon = (p) => <Icon {...p}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>;
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+    };
 
-        // --- 3. CONFIG & UTILS ---
-        const { useState, useEffect, useMemo, useCallback } = React;
-        const EST_YEARLY_MILEAGE = 20000;
-        
-        // Questions for severity score calculation
-        const SEVERITY_QUESTIONS = [
-            { id: 'safety', text: 'Does this affect safety (brakes, tires, lights)?', weight: 40 },
-            { id: 'leaks', text: 'Are there active fluid leaks?', weight: 25 },
-            { id: 'noise', text: 'Is there a new strange noise or vibration?', weight: 15 },
-            { id: 'function', text: 'Is a feature broken (AC, windows, locks)?', weight: 10 },
-            { id: 'visual', text: 'Is the damage clearly visible from 10ft?', weight: 10 },
-        ];
-
-        const DEFAULT_SCHEDULE = [
-            { id: 'oil', name: 'Engine Oil', intervalMiles: 10000, intervalMonths: 12, alertEnabled: true },
-            { id: 'rotate', name: 'Rotate Tires', intervalMiles: 5000, intervalMonths: 6, alertEnabled: true },
-            { id: 'cabin', name: 'Cabin Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
-            { id: 'engine_air', name: 'Air Filter', intervalMiles: 20000, intervalMonths: 24, alertEnabled: true },
-            { id: 'reg', name: 'Registration', intervalMiles: 0, intervalMonths: 12, alertEnabled: true },
-        ];
-
-        const formatDate = (dateString) => {
-            if (!dateString) return '-';
-            const d = new Date(dateString);
-            if (isNaN(d.getTime())) return '-';
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
-        };
-
-        const compressImage = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; const MAX_HEIGHT = 800;
-                        let width = img.width; let height = img.height;
-                        if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
-                        else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-                        canvas.width = width; canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
-                    };
-                    img.onerror = (err) => reject(err);
+    const compressImage = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; const MAX_HEIGHT = 800;
+                    let width = img.width; let height = img.height;
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                    else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.6));
                 };
-                reader.onerror = (err) => reject(err);
-            });
-        };
+                img.onerror = (err) => reject(err);
+            };
+            reader.onerror = (err) => reject(err);
+        });
+    };
 
-        const getSeverityColor = (score) => {
-            if (score >= 60) return 'text-red-600 bg-red-50 border-red-200';
-            if (score >= 30) return 'text-orange-600 bg-orange-50 border-orange-200';
-            return 'text-blue-600 bg-blue-50 border-blue-200';
-        };
+    const getSeverityColor = (score) => {
+        if (score >= 60) return 'text-red-600 bg-red-50 border-red-200';
+        if (score >= 30) return 'text-orange-600 bg-orange-50 border-orange-200';
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+    };
 
-        const getSeverityLabel = (score) => {
-            if (score >= 60) return 'Critical';
-            if (score >= 30) return 'Moderate';
-            return 'Low';
-        };
+    const getSeverityLabel = (score) => {
+        if (score >= 60) return 'Critical';
+        if (score >= 30) return 'Moderate';
+        return 'Low';
+    };
 
-        // --- 4. COMPONENTS ---
+    // --- 3. COMPONENTS ---
 
-        const AlertBanner = ({ items }) => {
-            if (!items || items.length === 0) return null;
-            const overdue = items.filter(i => i.status === 'overdue' && i.alertEnabled !== false);
-            const due = items.filter(i => i.status === 'due' && i.alertEnabled !== false);
-            if (overdue.length === 0 && due.length === 0) return null;
+    const AlertBanner = ({ items }) => {
+        if (!items || items.length === 0) return null;
+        const overdue = items.filter(i => i.status === 'overdue' && i.alertEnabled !== false);
+        const due = items.filter(i => i.status === 'due' && i.alertEnabled !== false);
+        if (overdue.length === 0 && due.length === 0) return null;
 
-            return (
-                <div className="mb-4 flex flex-col gap-2">
-                    {overdue.map(i => (
-                        <div key={i.id} className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm font-bold flex items-center justify-between border border-red-100 shadow-sm animate-pulse-subtle">
-                            <span className="flex items-center gap-2"><AlertTriangleIcon size={16}/> {i.name}</span>
-                            <span className="text-xs bg-white/50 px-2 py-1 rounded">Overdue</span>
-                        </div>
-                    ))}
-                    {due.map(i => (
-                        <div key={i.id} className="bg-yellow-50 text-yellow-800 px-4 py-3 rounded-lg text-sm font-bold flex items-center justify-between border border-yellow-100 shadow-sm">
-                            <span className="flex items-center gap-2"><ClockIcon size={16}/> {i.name}</span>
-                            <span className="text-xs bg-white/50 px-2 py-1 rounded">Due Soon</span>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
-        const ImageViewerModal = ({ src, title, onClose }) => {
-            if (!src) return null;
-            return (
-                <div className="fixed inset-0 bg-black z-[100] flex flex-col" onClick={onClose}>
-                    <div className="p-4 flex justify-end"><button onClick={onClose} className="text-white p-2"><XIcon size={32}/></button></div>
-                    <div className="flex-1 flex items-center justify-center p-4">
-                        <img src={src} className="max-h-full max-w-full object-contain" onClick={e => e.stopPropagation()} />
+        return (
+            <div className="mb-4 flex flex-col gap-2">
+                {overdue.map(i => (
+                    <div key={i.id} className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm font-bold flex items-center justify-between border border-red-100 shadow-sm animate-pulse-subtle">
+                        <span className="flex items-center gap-2"><AlertTriangleIcon size={16}/> {i.name}</span>
+                        <span className="text-xs bg-white/50 px-2 py-1 rounded">Overdue</span>
                     </div>
-                    <div className="p-6 text-white text-center font-bold text-lg bg-gradient-to-t from-black to-transparent">{title}</div>
+                ))}
+                {due.map(i => (
+                    <div key={i.id} className="bg-yellow-50 text-yellow-800 px-4 py-3 rounded-lg text-sm font-bold flex items-center justify-between border border-yellow-100 shadow-sm">
+                        <span className="flex items-center gap-2"><ClockIcon size={16}/> {i.name}</span>
+                        <span className="text-xs bg-white/50 px-2 py-1 rounded">Due Soon</span>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const ImageViewerModal = ({ src, title, onClose }) => {
+        if (!src) return null;
+        return (
+            <div className="fixed inset-0 bg-black z-[100] flex flex-col" onClick={onClose}>
+                <div className="p-4 flex justify-end"><button onClick={onClose} className="text-white p-2"><XIcon size={32}/></button></div>
+                <div className="flex-1 flex items-center justify-center p-4">
+                    <img src={src} className="max-h-full max-w-full object-contain" onClick={e => e.stopPropagation()} />
                 </div>
-            );
-        };
+                <div className="p-6 text-white text-center font-bold text-lg bg-gradient-to-t from-black to-transparent">{title}</div>
+            </div>
+        );
+    };
 
-        // --- NEW DAMAGE REPORTING COMPONENTS ---
+    const DamageForm = ({ user, db, appId, onClose, onSuccess }) => {
+        const [step, setStep] = useState(1);
+        const [data, setData] = useState({ title: '', desc: '', location: '', answers: {}, images: [] });
+        const [loading, setLoading] = useState(false);
 
-        const DamageForm = ({ user, db, appId, onClose, onSuccess }) => {
-            const { addDoc, collection, serverTimestamp } = window.firebaseModules.firestore;
-            const [step, setStep] = useState(1);
-            const [data, setData] = useState({ title: '', desc: '', location: '', answers: {}, images: [] });
-            const [loading, setLoading] = useState(false);
-
-            const handleAnswer = (qid, val) => setData(p => ({ ...p, answers: { ...p.answers, [qid]: val } }));
-            
-            const handleImage = async (e) => {
-                if (e.target.files?.[0]) {
-                    setLoading(true);
-                    try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
-                }
-            };
-
-            const calculateScore = () => {
-                return SEVERITY_QUESTIONS.reduce((acc, q) => acc + (data.answers[q.id] ? q.weight : 0), 0);
-            };
-
-            const submit = async () => {
+        const handleAnswer = (qid, val) => setData(p => ({ ...p, answers: { ...p.answers, [qid]: val } }));
+        
+        const handleImage = async (e) => {
+            if (e.target.files?.[0]) {
                 setLoading(true);
-                try {
-                    const score = calculateScore();
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports'), {
-                        ...data,
-                        severityScore: score,
-                        status: 'open',
-                        date: new Date().toISOString(),
-                        timestamp: serverTimestamp()
-                    });
-                    onSuccess();
-                    onClose();
-                } catch(e) { alert(e.message); } finally { setLoading(false); }
-            };
+                try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
+            }
+        };
 
-            return (
-                <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                    <div className="p-4 border-b flex justify-between items-center">
-                        <button onClick={onClose} className="text-gray-500 font-bold">Cancel</button>
-                        <h2 className="font-black text-lg">Report Damage</h2>
-                        <div className="w-16"></div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6">
-                        {step === 1 && (
-                            <div className="space-y-4">
-                                <div><label className="text-xs font-bold text-gray-400 uppercase">What's wrong?</label><input className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="e.g. Cracked Windshield" value={data.title} onChange={e=>setData({...data, title:e.target.value})} /></div>
-                                <div><label className="text-xs font-bold text-gray-400 uppercase">Location on Vehicle</label><input className="w-full p-4 bg-gray-50 rounded-xl" placeholder="e.g. Front Driver Side" value={data.location} onChange={e=>setData({...data, location:e.target.value})} /></div>
-                                <div><label className="text-xs font-bold text-gray-400 uppercase">Description</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="Details..." value={data.desc} onChange={e=>setData({...data, desc:e.target.value})} /></div>
-                                <button disabled={!data.title || !data.desc} onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Assessment</button>
-                            </div>
-                        )}
-                        {step === 2 && (
-                            <div className="space-y-6">
-                                <div className="text-xl font-black mb-4">Assessment</div>
-                                {SEVERITY_QUESTIONS.map(q => (
-                                    <div key={q.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                        <span className="font-medium text-sm pr-4">{q.text}</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={()=>handleAnswer(q.id, true)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === true ? 'bg-red-500 text-white' : 'bg-white text-gray-500 shadow'}`}>Yes</button>
-                                            <button onClick={()=>handleAnswer(q.id, false)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === false ? 'bg-green-500 text-white' : 'bg-white text-gray-500 shadow'}`}>No</button>
-                                        </div>
-                                    </div>
-                                ))}
-                                <button disabled={Object.keys(data.answers).length < SEVERITY_QUESTIONS.length} onClick={() => setStep(3)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Evidence</button>
-                            </div>
-                        )}
-                        {step === 3 && (
-                            <div className="space-y-4">
-                                <div className="text-xl font-black mb-2">Evidence</div>
-                                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-sm font-medium mb-4">At least one photo is required to submit a report.</div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {data.images.map((img, i) => (
-                                        <div key={i} className="aspect-square rounded-xl overflow-hidden relative shadow-sm">
-                                            <img src={img} className="w-full h-full object-cover" />
-                                            <button onClick={()=>setData(p=>({...p, images: p.images.filter((_, idx)=>idx!==i)}))} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><XIcon size={12}/></button>
-                                        </div>
-                                    ))}
-                                    <label className="aspect-square rounded-xl bg-gray-100 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform">
-                                        <CameraIcon size={32} className="text-gray-400 mb-2" />
-                                        <span className="text-xs font-bold text-gray-400">{loading ? '...' : 'Add Photo'}</span>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handleImage} disabled={loading} />
-                                    </label>
-                                </div>
-                                <div className="mt-8">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <span className="font-bold text-gray-400 text-sm uppercase">Severity Score</span>
-                                        <span className="text-2xl font-black">{calculateScore()} / 100</span>
-                                    </div>
-                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-gradient-to-r from-blue-500 via-orange-500 to-red-600 transition-all duration-500" style={{width: `${calculateScore()}%`}}></div>
+        const calculateScore = () => {
+            return SEVERITY_QUESTIONS.reduce((acc, q) => acc + (data.answers[q.id] ? q.weight : 0), 0);
+        };
+
+        const submit = async () => {
+            setLoading(true);
+            try {
+                const score = calculateScore();
+                await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports'), {
+                    ...data,
+                    severityScore: score,
+                    status: 'open',
+                    date: new Date().toISOString(),
+                    timestamp: serverTimestamp()
+                });
+                onSuccess();
+                onClose();
+            } catch(e) { alert(e.message); } finally { setLoading(false); }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center">
+                    <button onClick={onClose} className="text-gray-500 font-bold">Cancel</button>
+                    <h2 className="font-black text-lg">Report Damage</h2>
+                    <div className="w-16"></div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                    {step === 1 && (
+                        <div className="space-y-4">
+                            <div><label className="text-xs font-bold text-gray-400 uppercase">What's wrong?</label><input className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="e.g. Cracked Windshield" value={data.title} onChange={e=>setData({...data, title:e.target.value})} /></div>
+                            <div><label className="text-xs font-bold text-gray-400 uppercase">Location on Vehicle</label><input className="w-full p-4 bg-gray-50 rounded-xl" placeholder="e.g. Front Driver Side" value={data.location} onChange={e=>setData({...data, location:e.target.value})} /></div>
+                            <div><label className="text-xs font-bold text-gray-400 uppercase">Description</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="Details..." value={data.desc} onChange={e=>setData({...data, desc:e.target.value})} /></div>
+                            <button disabled={!data.title || !data.desc} onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Assessment</button>
+                        </div>
+                    )}
+                    {step === 2 && (
+                        <div className="space-y-6">
+                            <div className="text-xl font-black mb-4">Assessment</div>
+                            {SEVERITY_QUESTIONS.map(q => (
+                                <div key={q.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                    <span className="font-medium text-sm pr-4">{q.text}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>handleAnswer(q.id, true)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === true ? 'bg-red-500 text-white' : 'bg-white text-gray-500 shadow'}`}>Yes</button>
+                                        <button onClick={()=>handleAnswer(q.id, false)} className={`px-4 py-2 rounded-lg text-sm font-bold ${data.answers[q.id] === false ? 'bg-green-500 text-white' : 'bg-white text-gray-500 shadow'}`}>No</button>
                                     </div>
                                 </div>
-                                <button disabled={data.images.length === 0 || loading} onClick={submit} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">{loading ? 'Saving...' : 'Submit Report'}</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        const RepairForm = ({ user, db, appId, damageReport, onClose, onSuccess }) => {
-            const { updateDoc, doc, serverTimestamp } = window.firebaseModules.firestore;
-            const [data, setData] = useState({ cost: '', notes: '', images: [] });
-            const [loading, setLoading] = useState(false);
-
-            const handleImage = async (e) => {
-                if (e.target.files?.[0]) {
-                    setLoading(true);
-                    try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
-                }
-            };
-
-            const submit = async () => {
-                setLoading(true);
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'damageReports', damageReport.id), {
-                        status: 'repaired',
-                        repairDetails: {
-                            ...data,
-                            date: new Date().toISOString(),
-                            cost: Number(data.cost)
-                        }
-                    });
-                    onSuccess();
-                    onClose();
-                } catch(e) { alert(e.message); } finally { setLoading(false); }
-            };
-
-            return (
-                <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                    <div className="p-4 border-b flex justify-between items-center bg-green-50">
-                        <button onClick={onClose} className="text-green-700 font-bold">Cancel</button>
-                        <h2 className="font-black text-lg text-green-900">Log Repair</h2>
-                        <div className="w-16"></div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="bg-gray-50 p-4 rounded-xl mb-4">
-                            <div className="text-xs font-bold text-gray-400 uppercase">Fixing</div>
-                            <div className="font-bold text-lg">{damageReport.title}</div>
+                            ))}
+                            <button disabled={Object.keys(data.answers).length < SEVERITY_QUESTIONS.length} onClick={() => setStep(3)} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">Next: Evidence</button>
                         </div>
-
-                        <div><label className="text-xs font-bold text-gray-400 uppercase">Repair Cost</label><input type="number" className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="0.00" value={data.cost} onChange={e=>setData({...data, cost:e.target.value})} /></div>
-                        <div><label className="text-xs font-bold text-gray-400 uppercase">Notes / Methodology</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="How was it fixed?" value={data.notes} onChange={e=>setData({...data, notes:e.target.value})} /></div>
-                        
-                        <div>
-                            <div className="text-xs font-bold text-gray-400 uppercase mb-2">Proof of Repair (Required)</div>
+                    )}
+                    {step === 3 && (
+                        <div className="space-y-4">
+                            <div className="text-xl font-black mb-2">Evidence</div>
+                            <div className="bg-yellow-50 text-yellow-800 p-4 rounded-xl text-sm font-medium mb-4">At least one photo is required to submit a report.</div>
                             <div className="grid grid-cols-2 gap-4">
                                 {data.images.map((img, i) => (
                                     <div key={i} className="aspect-square rounded-xl overflow-hidden relative shadow-sm">
@@ -369,677 +275,750 @@
                                     <input type="file" className="hidden" accept="image/*" onChange={handleImage} disabled={loading} />
                                 </label>
                             </div>
+                            <div className="mt-8">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="font-bold text-gray-400 text-sm uppercase">Severity Score</span>
+                                    <span className="text-2xl font-black">{calculateScore()} / 100</span>
+                                </div>
+                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-blue-500 via-orange-500 to-red-600 transition-all duration-500" style={{width: `${calculateScore()}%`}}></div>
+                                </div>
+                            </div>
+                            <button disabled={data.images.length === 0 || loading} onClick={submit} className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50">{loading ? 'Saving...' : 'Submit Report'}</button>
                         </div>
-
-                        <button disabled={data.images.length === 0 || loading || !data.cost} onClick={submit} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50 shadow-lg shadow-green-200">{loading ? 'Saving...' : 'Complete Repair'}</button>
-                    </div>
+                    )}
                 </div>
-            );
+            </div>
+        );
+    };
+
+    const RepairForm = ({ user, db, appId, damageReport, onClose, onSuccess }) => {
+        const [data, setData] = useState({ cost: '', notes: '', images: [] });
+        const [loading, setLoading] = useState(false);
+
+        const handleImage = async (e) => {
+            if (e.target.files?.[0]) {
+                setLoading(true);
+                try { const b64 = await compressImage(e.target.files[0]); setData(p => ({...p, images: [...p.images, b64]})); } finally { setLoading(false); }
+            }
         };
 
-        const DamageList = ({ reports, onReportDamage, onViewReport }) => {
-            const active = reports.filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore);
-            const history = reports.filter(r => r.status === 'repaired').sort((a,b) => new Date(b.repairDetails.date) - new Date(a.repairDetails.date));
+        const submit = async () => {
+            setLoading(true);
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'damageReports', damageReport.id), {
+                    status: 'repaired',
+                    repairDetails: {
+                        ...data,
+                        date: new Date().toISOString(),
+                        cost: Number(data.cost)
+                    }
+                });
+                onSuccess();
+                onClose();
+            } catch(e) { alert(e.message); } finally { setLoading(false); }
+        };
 
-            return (
-                <div className="pb-24 space-y-6">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-black">Active Damage</h2>
-                        <button onClick={onReportDamage} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg shadow-red-200 active:scale-95 transition-transform flex items-center gap-2"><AlertOctagonIcon size={16}/> Report</button>
+        return (
+            <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center bg-green-50">
+                    <button onClick={onClose} className="text-green-700 font-bold">Cancel</button>
+                    <h2 className="font-black text-lg text-green-900">Log Repair</h2>
+                    <div className="w-16"></div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="bg-gray-50 p-4 rounded-xl mb-4">
+                        <div className="text-xs font-bold text-gray-400 uppercase">Fixing</div>
+                        <div className="font-bold text-lg">{damageReport.title}</div>
                     </div>
+
+                    <div><label className="text-xs font-bold text-gray-400 uppercase">Repair Cost</label><input type="number" className="w-full p-4 bg-gray-50 rounded-xl font-bold text-lg" placeholder="0.00" value={data.cost} onChange={e=>setData({...data, cost:e.target.value})} /></div>
+                    <div><label className="text-xs font-bold text-gray-400 uppercase">Notes / Methodology</label><textarea className="w-full p-4 bg-gray-50 rounded-xl h-32" placeholder="How was it fixed?" value={data.notes} onChange={e=>setData({...data, notes:e.target.value})} /></div>
                     
-                    {active.length === 0 ? (
-                        <div className="bg-green-50 text-green-800 p-8 rounded-2xl text-center border border-green-100">
-                            <CheckCircleIcon size={48} className="mx-auto mb-2 opacity-50"/>
-                            <div className="font-bold">All Good!</div>
-                            <div className="text-sm opacity-70">No active damage reported.</div>
+                    <div>
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-2">Proof of Repair (Required)</div>
+                        <div className="grid grid-cols-2 gap-4">
+                            {data.images.map((img, i) => (
+                                <div key={i} className="aspect-square rounded-xl overflow-hidden relative shadow-sm">
+                                    <img src={img} className="w-full h-full object-cover" />
+                                    <button onClick={()=>setData(p=>({...p, images: p.images.filter((_, idx)=>idx!==i)}))} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><XIcon size={12}/></button>
+                                </div>
+                            ))}
+                            <label className="aspect-square rounded-xl bg-gray-100 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform">
+                                <CameraIcon size={32} className="text-gray-400 mb-2" />
+                                <span className="text-xs font-bold text-gray-400">{loading ? '...' : 'Add Photo'}</span>
+                                <input type="file" className="hidden" accept="image/*" onChange={handleImage} disabled={loading} />
+                            </label>
                         </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {active.map(r => (
-                                <div key={r.id} onClick={() => onViewReport(r)} className={`p-4 rounded-2xl border bg-white shadow-soft flex gap-4 ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
-                                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
-                                        {r.images[0] && <img src={r.images[0]} className="w-full h-full object-cover" />}
+                    </div>
+
+                    <button disabled={data.images.length === 0 || loading || !data.cost} onClick={submit} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold mt-4 disabled:opacity-50 shadow-lg shadow-green-200">{loading ? 'Saving...' : 'Complete Repair'}</button>
+                </div>
+            </div>
+        );
+    };
+
+    const DamageList = ({ reports, onReportDamage, onViewReport }) => {
+        const active = reports.filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore);
+        const history = reports.filter(r => r.status === 'repaired').sort((a,b) => new Date(b.repairDetails.date) - new Date(a.repairDetails.date));
+
+        return (
+            <div className="pb-24 space-y-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-black">Active Damage</h2>
+                    <button onClick={onReportDamage} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg shadow-red-200 active:scale-95 transition-transform flex items-center gap-2"><AlertOctagonIcon size={16}/> Report</button>
+                </div>
+                
+                {active.length === 0 ? (
+                    <div className="bg-green-50 text-green-800 p-8 rounded-2xl text-center border border-green-100">
+                        <CheckCircleIcon size={48} className="mx-auto mb-2 opacity-50"/>
+                        <div className="font-bold">All Good!</div>
+                        <div className="text-sm opacity-70">No active damage reported.</div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {active.map(r => (
+                            <div key={r.id} onClick={() => onViewReport(r)} className={`p-4 rounded-2xl border bg-white shadow-soft flex gap-4 ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
+                                <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                                    {r.images[0] && <img src={r.images[0]} className="w-full h-full object-cover" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start">
+                                        <div className="font-bold truncate">{r.title}</div>
+                                        <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${getSeverityColor(r.severityScore)}`}>{getSeverityLabel(r.severityScore)}</div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start">
-                                            <div className="font-bold truncate">{r.title}</div>
-                                            <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border ${getSeverityColor(r.severityScore)}`}>{getSeverityLabel(r.severityScore)}</div>
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-1 truncate">{r.desc}</div>
-                                        <div className="text-xs font-mono text-gray-400 mt-2">{formatDate(r.date)}</div>
+                                    <div className="text-xs text-gray-500 mt-1 truncate">{r.desc}</div>
+                                    <div className="text-xs font-mono text-gray-400 mt-2">{formatDate(r.date)}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {history.length > 0 && (
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-400 uppercase mb-4">Repair History</h2>
+                        <div className="space-y-3 opacity-70">
+                            {history.map(r => (
+                                <div key={r.id} onClick={() => onViewReport(r)} className="p-4 rounded-2xl border bg-gray-50 flex gap-4 items-center">
+                                    <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircleIcon size={20}/></div>
+                                    <div className="flex-1">
+                                        <div className="font-bold line-through text-gray-500">{r.title}</div>
+                                        <div className="text-xs text-gray-400">Repaired {formatDate(r.repairDetails.date)} • ${r.repairDetails.cost}</div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
-                    {history.length > 0 && (
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-400 uppercase mb-4">Repair History</h2>
-                            <div className="space-y-3 opacity-70">
-                                {history.map(r => (
-                                    <div key={r.id} onClick={() => onViewReport(r)} className="p-4 rounded-2xl border bg-gray-50 flex gap-4 items-center">
-                                        <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircleIcon size={20}/></div>
-                                        <div className="flex-1">
-                                            <div className="font-bold line-through text-gray-500">{r.title}</div>
-                                            <div className="text-xs text-gray-400">Repaired {formatDate(r.repairDetails.date)} • ${r.repairDetails.cost}</div>
-                                        </div>
-                                    </div>
-                                ))}
+    const DamageDetailModal = ({ report, onClose, onRepair }) => {
+        return (
+            <div className="fixed inset-0 bg-white z-40 flex flex-col">
+                <div className="relative h-64 bg-gray-900">
+                    <img src={report.images[0]} className="w-full h-full object-cover opacity-80" />
+                    <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"><XIcon size={24}/></button>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent text-white">
+                        <div className="text-xs font-bold opacity-75 uppercase mb-1">{report.location}</div>
+                        <h1 className="text-3xl font-black leading-none">{report.title}</h1>
+                    </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                    {report.status === 'open' && (
+                        <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${getSeverityColor(report.severityScore)}`}>
+                            <div>
+                                <div className="text-xs font-bold uppercase opacity-75">Severity Score</div>
+                                <div className="text-3xl font-black">{report.severityScore}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-bold text-lg">{getSeverityLabel(report.severityScore)}</div>
+                                <div className="text-xs opacity-75">Action Required</div>
                             </div>
                         </div>
                     )}
-                </div>
-            );
-        };
 
-        const DamageDetailModal = ({ report, onClose, onRepair }) => {
-            return (
-                <div className="fixed inset-0 bg-white z-40 flex flex-col">
-                    <div className="relative h-64 bg-gray-900">
-                        <img src={report.images[0]} className="w-full h-full object-cover opacity-80" />
-                        <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"><XIcon size={24}/></button>
-                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent text-white">
-                            <div className="text-xs font-bold opacity-75 uppercase mb-1">{report.location}</div>
-                            <h1 className="text-3xl font-black leading-none">{report.title}</h1>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                        <h3 className="font-bold text-gray-900 mb-2">Description</h3>
+                        <p className="text-gray-600 leading-relaxed">{report.desc}</p>
+                    </div>
+
+                    {report.status === 'open' ? (
+                        <button onClick={() => onRepair(report)} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                            <HammerIcon /> Mark as Repaired
+                        </button>
+                    ) : (
+                        <div className="bg-green-50 border border-green-200 p-6 rounded-2xl">
+                            <div className="flex items-center gap-2 text-green-800 font-bold mb-4"><CheckCircleIcon /> Repaired on {formatDate(report.repairDetails.date)}</div>
+                            <div className="text-sm text-green-700 mb-4">{report.repairDetails.notes}</div>
+                            <div className="font-mono text-green-900 font-bold text-xl">${report.repairDetails.cost.toFixed(2)}</div>
+                            {report.repairDetails.images?.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-green-200">
+                                    <div className="text-xs font-bold uppercase text-green-800 mb-2">Repair Proof</div>
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        {report.repairDetails.images.map((img, i) => <img key={i} src={img} className="h-20 w-20 rounded-lg object-cover border border-green-200" />)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div className="mt-8">
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-3">Original Photos</div>
+                        <div className="grid grid-cols-3 gap-2">
+                            {report.images.map((img, i) => (
+                                <img key={i} src={img} className="w-full aspect-square object-cover rounded-xl border border-gray-200" />
+                            ))}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-                        {report.status === 'open' && (
-                            <div className={`mb-6 p-4 rounded-xl border flex items-center justify-between ${getSeverityColor(report.severityScore)}`}>
-                                <div>
-                                    <div className="text-xs font-bold uppercase opacity-75">Severity Score</div>
-                                    <div className="text-3xl font-black">{report.severityScore}</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="font-bold text-lg">{getSeverityLabel(report.severityScore)}</div>
-                                    <div className="text-xs opacity-75">Action Required</div>
-                                </div>
-                            </div>
-                        )}
+                </div>
+            </div>
+        );
+    };
 
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                            <h3 className="font-bold text-gray-900 mb-2">Description</h3>
-                            <p className="text-gray-600 leading-relaxed">{report.desc}</p>
-                        </div>
-
-                        {report.status === 'open' ? (
-                            <button onClick={() => onRepair(report)} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                                <HammerIcon /> Mark as Repaired
-                            </button>
-                        ) : (
-                            <div className="bg-green-50 border border-green-200 p-6 rounded-2xl">
-                                <div className="flex items-center gap-2 text-green-800 font-bold mb-4"><CheckCircleIcon /> Repaired on {formatDate(report.repairDetails.date)}</div>
-                                <div className="text-sm text-green-700 mb-4">{report.repairDetails.notes}</div>
-                                <div className="font-mono text-green-900 font-bold text-xl">${report.repairDetails.cost.toFixed(2)}</div>
-                                {report.repairDetails.images?.length > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-green-200">
-                                        <div className="text-xs font-bold uppercase text-green-800 mb-2">Repair Proof</div>
-                                        <div className="flex gap-2 overflow-x-auto pb-2">
-                                            {report.repairDetails.images.map((img, i) => <img key={i} src={img} className="h-20 w-20 rounded-lg object-cover border border-green-200" />)}
-                                        </div>
+    const ItemHistoryModal = ({ item, records, onClose, onViewImage }) => {
+        const historyRecords = records.filter(r => r.serviceType === item.name).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return (
+            <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
+                <div className="bg-white w-full sm:max-w-md h-[85vh] sm:h-auto sm:max-h-[80vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl">
+                    <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                        <h2 className="font-bold text-lg">{item.name}</h2>
+                        <button onClick={onClose} className="p-2 bg-gray-200 rounded-full"><XIcon size={18}/></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                        {historyRecords.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">No history</div>}
+                        {historyRecords.map(r => (
+                            <div key={r.id} className="bg-white p-3 rounded-xl border shadow-sm">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="font-bold text-gray-900">{formatDate(r.date)}</div>
+                                        <div className="text-xs font-mono text-gray-500">{r.mileage.toLocaleString()} mi</div>
+                                    </div>
+                                    {r.receiptImage && <button onClick={() => onViewImage(r.receiptImage, r.serviceType)} className="text-blue-600 bg-blue-50 p-2 rounded-lg"><EyeIcon size={16}/></button>}
+                                </div>
+                                {(r.parts || r.notes) && (
+                                    <div className="mt-2 text-sm text-gray-600 border-t pt-2">
+                                        {r.parts && <div>{r.parts}</div>}
+                                        {r.notes && <div className="italic text-gray-400 mt-1">"{r.notes}"</div>}
                                     </div>
                                 )}
-                            </div>
-                        )}
-                        
-                        <div className="mt-8">
-                            <div className="text-xs font-bold text-gray-400 uppercase mb-3">Original Photos</div>
-                            <div className="grid grid-cols-3 gap-2">
-                                {report.images.map((img, i) => (
-                                    <img key={i} src={img} className="w-full aspect-square object-cover rounded-xl border border-gray-200" />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- EXISTING UTILS ---
-        const ItemHistoryModal = ({ item, records, onClose, onViewImage }) => {
-            const historyRecords = records.filter(r => r.serviceType === item.name).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            return (
-                <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
-                    <div className="bg-white w-full sm:max-w-md h-[85vh] sm:h-auto sm:max-h-[80vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl">
-                        <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                            <h2 className="font-bold text-lg">{item.name}</h2>
-                            <button onClick={onClose} className="p-2 bg-gray-200 rounded-full"><XIcon size={18}/></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-                            {historyRecords.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">No history</div>}
-                            {historyRecords.map(r => (
-                                <div key={r.id} className="bg-white p-3 rounded-xl border shadow-sm">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-bold text-gray-900">{formatDate(r.date)}</div>
-                                            <div className="text-xs font-mono text-gray-500">{r.mileage.toLocaleString()} mi</div>
-                                        </div>
-                                        {r.receiptImage && <button onClick={() => onViewImage(r.receiptImage, r.serviceType)} className="text-blue-600 bg-blue-50 p-2 rounded-lg"><EyeIcon size={16}/></button>}
-                                    </div>
-                                    {(r.parts || r.notes) && (
-                                        <div className="mt-2 text-sm text-gray-600 border-t pt-2">
-                                            {r.parts && <div>{r.parts}</div>}
-                                            {r.notes && <div className="italic text-gray-400 mt-1">"{r.notes}"</div>}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const FullAuditReport = ({ records, vehicleProfile, onClose }) => {
-            const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            return (
-                <div className="fixed inset-0 bg-white z-[60] overflow-y-auto flex flex-col">
-                    <div className="p-4 border-b flex justify-between items-center bg-gray-50 sticky top-0 no-print">
-                        <h2 className="font-bold text-lg">Audit Report</h2>
-                        <div className="flex gap-2">
-                            <button onClick={() => window.print()} className="bg-gray-200 p-2 rounded-lg"><PrinterIcon size={20}/></button>
-                            <button onClick={onClose} className="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm">Close</button>
-                        </div>
-                    </div>
-                    <div className="p-6">
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-black">{vehicleProfile.yearMakeModel || 'Vehicle Report'}</h1>
-                            <div className="font-mono text-sm text-gray-500 mt-1">{vehicleProfile.vin || 'No VIN'}</div>
-                        </div>
-                        <div className="space-y-4">
-                            {sortedRecords.map((r, i) => (
-                                <div key={r.id} className="audit-record p-4 rounded-lg border border-gray-200">
-                                    <div className="flex justify-between font-bold mb-2">
-                                        <span>{r.serviceType}</span>
-                                        <span className="font-mono text-sm">{formatDate(r.date)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                                        <span>{r.mileage.toLocaleString()} mi</span>
-                                    </div>
-                                    {r.parts && <div className="text-sm bg-gray-50 p-2 rounded">{r.parts}</div>}
-                                    {r.notes && <div className="text-xs italic text-gray-400 mt-1">{r.notes}</div>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const Login = ({ setUser, auth, onGuestLogin }) => {
-            const [mode, setMode] = useState('login'); 
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [guestCode, setGuestCode] = useState('');
-            const [error, setError] = useState('');
-            const [loading, setLoading] = useState(false);
-            const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.firebaseModules.auth;
-
-            const handle = async (e) => {
-                e.preventDefault(); setError(''); setLoading(true);
-                try {
-                    if (mode === 'register') await createUserWithEmailAndPassword(auth, email, password);
-                    else if (mode === 'login') await signInWithEmailAndPassword(auth, email, password);
-                    else if (mode === 'guest') await onGuestLogin(guestCode.trim().toUpperCase());
-                } catch (err) { setError(err.message); setLoading(false); }
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-gray-100">
-                    <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl">
-                        <div className="text-center mb-8">
-                            <div className="inline-block p-4 bg-gray-900 text-white rounded-2xl mb-4"><CarIcon size={32} /></div>
-                            <h1 className="text-3xl font-black text-gray-900">HTMS</h1>
-                        </div>
-                        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-bold mb-4 text-center">{error}</div>}
-                        <form onSubmit={handle} className="space-y-4">
-                            {mode === 'guest' ? (
-                                <input className="w-full p-4 text-center text-2xl font-mono border-2 border-gray-200 rounded-xl focus:border-gray-900 outline-none uppercase tracking-widest" placeholder="CODE" value={guestCode} onChange={e => setGuestCode(e.target.value)} />
-                            ) : (
-                                <>
-                                    <input type="email" placeholder="Email" className="w-full p-4 bg-gray-50 rounded-xl outline-none border border-transparent focus:bg-white focus:border-gray-300 font-medium" value={email} onChange={e => setEmail(e.target.value)} />
-                                    <input type="password" placeholder="Password" className="w-full p-4 bg-gray-50 rounded-xl outline-none border border-transparent focus:bg-white focus:border-gray-300 font-medium" value={password} onChange={e => setPassword(e.target.value)} />
-                                </>
-                            )}
-                            <button disabled={loading} className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200 active:scale-95 transition-transform">{loading ? '...' : (mode === 'guest' ? 'Access' : mode === 'register' ? 'Sign Up' : 'Sign In')}</button>
-                        </form>
-                        <div className="mt-6 flex justify-center gap-4 text-sm font-bold text-gray-400">
-                            <button onClick={() => setMode('login')} className={mode === 'login' ? 'text-gray-900' : ''}>Login</button>
-                            <button onClick={() => setMode('register')} className={mode === 'register' ? 'text-gray-900' : ''}>Join</button>
-                            <button onClick={() => setMode('guest')} className={mode === 'guest' ? 'text-gray-900' : ''}>Guest</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
-            const { addDoc, updateDoc, collection, serverTimestamp, doc } = window.firebaseModules.firestore;
-            const [mode, setMode] = useState('single');
-            const [common, setCommon] = useState({ date: initialData?.date || new Date().toISOString().split('T')[0], mileage: initialData?.mileage || '', notes: initialData?.notes || '' });
-            const [single, setSingle] = useState({ type: initialData?.serviceType || (schedule[0]?.name || 'Oil'), parts: initialData?.parts || '', sku: initialData?.skuReference || '', img: initialData?.receiptImage || null });
-            const [multi, setMulti] = useState({});
-            const [otherName, setOtherName] = useState('');
-            const [loading, setLoading] = useState(false);
-
-            const handleFile = async (e) => {
-                if (e.target.files?.[0]) {
-                    setLoading(true);
-                    try { const b64 = await compressImage(e.target.files[0]); setSingle(s => ({ ...s, img: b64 })); } finally { setLoading(false); }
-                }
-            };
-
-            const submit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                try {
-                    const ts = serverTimestamp();
-                    const base = { date: common.date, mileage: Number(common.mileage), timestamp: ts };
-                    if (mode === 'single') {
-                        const d = { ...base, serviceType: single.type, parts: single.parts, skuReference: single.sku, notes: common.notes, receiptImage: single.img };
-                        if (initialData) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id), d);
-                        else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), d);
-                    } else {
-                        await Promise.all(Object.entries(multi).map(([n, d]) => addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), { ...base, serviceType: n === 'Other' ? otherName : n, parts: d.parts, skuReference: d.sku, notes: common.notes })));
-                    }
-                    onSuccess(); onClose();
-                } catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-
-            return (
-                <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                    <div className="p-4 flex justify-between items-center border-b">
-                        <button onClick={onClose} className="text-gray-500 font-bold">Cancel</button>
-                        <h2 className="font-black text-lg">{initialData ? 'Edit' : 'Log Service'}</h2>
-                        <button onClick={submit} disabled={loading} className="text-blue-600 font-bold">{loading ? '...' : 'Save'}</button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="flex gap-4">
-                            <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Date</label><input type="date" className="w-full p-3 bg-gray-50 rounded-xl font-bold" value={common.date} onChange={e => setCommon({...common, date: e.target.value})} /></div>
-                            <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Miles</label><input type="number" className="w-full p-3 bg-gray-50 rounded-xl font-bold" value={common.mileage} onChange={e => setCommon({...common, mileage: e.target.value})} /></div>
-                        </div>
-                        {!initialData && <div className="flex bg-gray-100 p-1 rounded-xl"><button onClick={() => setMode('single')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'single' ? 'bg-white shadow' : 'text-gray-500'}`}>One</button><button onClick={() => setMode('multi')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'multi' ? 'bg-white shadow' : 'text-gray-500'}`}>Multiple</button></div>}
-                        
-                        {mode === 'single' ? (
-                            <div className="space-y-4">
-                                <div><label className="text-xs font-bold text-gray-400 uppercase">Service</label><select className="w-full p-3 bg-gray-50 rounded-xl font-bold appearance-none" value={single.type} onChange={e => setSingle({...single, type: e.target.value})}>{schedule.map(i => <option key={i.id} value={i.name}>{i.name}</option>)}<option value="Other">Other</option></select></div>
-                                <div><label className="text-xs font-bold text-gray-400 uppercase">Parts</label><textarea className="w-full p-3 bg-gray-50 rounded-xl h-24" value={single.parts} onChange={e => setSingle({...single, parts: e.target.value})} /></div>
-                                <div className="flex gap-4 items-center">
-                                    <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">SKU</label><input className="w-full p-3 bg-gray-50 rounded-xl" value={single.sku} onChange={e => setSingle({...single, sku: e.target.value})} /></div>
-                                    <label className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-xl cursor-pointer mt-4 relative overflow-hidden">
-                                        {single.img ? <img src={single.img} className="w-full h-full object-cover"/> : <ImageIcon className="text-gray-400"/>}
-                                        <input type="file" className="hidden" accept="image/*" onChange={handleFile} />
-                                    </label>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase">Select Services</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[...schedule, {id:'other', name:'Other'}].map(i => (
-                                        <button key={i.id} type="button" onClick={() => setMulti(p => { const n = {...p}; if(n[i.name]) delete n[i.name]; else n[i.name]={parts:'',sku:''}; return n; })} className={`px-4 py-2 rounded-full text-sm font-bold border ${multi[i.name] ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200'}`}>{i.name}</button>
-                                    ))}
-                                </div>
-                                {Object.keys(multi).map(n => (
-                                    <div key={n} className="bg-gray-50 p-4 rounded-xl mt-4">
-                                        <div className="font-bold mb-2">{n === 'Other' ? <input placeholder="Name" className="bg-white p-1 rounded" value={otherName} onChange={e=>setOtherName(e.target.value)}/> : n}</div>
-                                        <div className="flex gap-2"><input placeholder="Parts" className="flex-1 p-2 rounded border" value={multi[n].parts} onChange={e => setMulti(p => ({...p, [n]: {...p[n], parts: e.target.value}}))}/><input placeholder="SKU" className="w-20 p-2 rounded border" value={multi[n].sku} onChange={e => setMulti(p => ({...p, [n]: {...p[n], sku: e.target.value}}))}/></div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <div><label className="text-xs font-bold text-gray-400 uppercase">Notes</label><textarea className="w-full p-3 bg-gray-50 rounded-xl h-20" value={common.notes} onChange={e => setCommon({...common, notes: e.target.value})} /></div>
-                    </div>
-                </div>
-            );
-        };
-
-        const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
-            const { setDoc, doc } = window.firebaseModules.firestore;
-            const [items, setItems] = useState(currentSchedule);
-            const [n, setN] = useState({ name: '', mi: 5000, mo: 6 });
-            
-            const save = async (list) => { await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule'), { items: list }); onUpdate(list); };
-            const add = () => { const l = [...items, {...n, id: Date.now().toString(), intervalMiles: n.mi, intervalMonths: n.mo, alertEnabled: true}]; setItems(l); save(l); setN({name:'',mi:5000,mo:6}); };
-            const del = (id) => { const l = items.filter(i => i.id !== id); setItems(l); save(l); };
-            const toggle = (id) => { const l = items.map(i => i.id === id ? { ...i, alertEnabled: !i.alertEnabled } : i); setItems(l); save(l); };
-
-            return (
-                <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                    <div className="p-4 border-b flex justify-between items-center"><h2 className="font-black text-lg">Schedule</h2><button onClick={onClose} className="bg-gray-200 p-2 rounded-full"><XIcon size={20}/></button></div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        <div className="flex gap-2 mb-6">
-                            <input className="flex-1 p-3 bg-gray-100 rounded-xl font-bold" placeholder="New Item" value={n.name} onChange={e=>setN({...n,name:e.target.value})} />
-                            <input type="number" className="w-16 p-3 bg-gray-100 rounded-xl text-center" placeholder="mi" value={n.mi} onChange={e=>setN({...n,mi:parseInt(e.target.value)})} />
-                            <input type="number" className="w-16 p-3 bg-gray-100 rounded-xl text-center" placeholder="mo" value={n.mo} onChange={e=>setN({...n,mo:parseInt(e.target.value)})} />
-                            <button onClick={add} className="bg-blue-600 text-white p-3 rounded-xl"><PlusCircleIcon size={24}/></button>
-                        </div>
-                        {items.map(i => (
-                            <div key={i.id} className="flex items-center gap-3 p-3 border rounded-xl">
-                                <button onClick={()=>toggle(i.id)} className={i.alertEnabled!==false?'text-blue-600':'text-gray-300'}><BellIcon size={20}/></button>
-                                <div className="flex-1 font-bold">{i.name}</div>
-                                <div className="text-xs text-gray-400 font-mono text-right">{i.intervalMiles}mi<br/>{i.intervalMonths}mo</div>
-                                <button onClick={()=>del(i.id)} className="text-red-400"><TrashIcon size={20}/></button>
                             </div>
                         ))}
                     </div>
                 </div>
-            );
-        };
+            </div>
+        );
+    };
 
-        const VehicleProfileModal = ({ user, db, appId, currentProfile, onClose, onUpdate }) => {
-            const { setDoc, doc } = window.firebaseModules.firestore;
-            const [p, setP] = useState(currentProfile);
-            const save = async (e) => { e.preventDefault(); await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile'), p); onUpdate(p); onClose(); };
-            return (
-                <div className="fixed inset-0 bg-white z-50 p-6 flex flex-col justify-center">
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full"><XIcon size={24}/></button>
-                    <h2 className="text-3xl font-black mb-8">Vehicle</h2>
-                    <form onSubmit={save} className="space-y-4">
-                        <input className="w-full p-4 bg-gray-50 rounded-xl font-bold" placeholder="Year Make Model" value={p.yearMakeModel} onChange={e=>setP({...p,yearMakeModel:e.target.value})} required/>
-                        <input className="w-full p-4 bg-gray-50 rounded-xl font-mono uppercase" placeholder="VIN" value={p.vin} onChange={e=>setP({...p,vin:e.target.value})} />
-                        <input className="w-full p-4 bg-gray-50 rounded-xl uppercase" placeholder="License Plate" value={p.licensePlate} onChange={e=>setP({...p,licensePlate:e.target.value})} />
-                        <input className="w-full p-4 bg-gray-50 rounded-xl" placeholder="Owner Name" value={p.ownerName} onChange={e=>setP({...p,ownerName:e.target.value})} />
-                        <button className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4">Save</button>
-                    </form>
-                </div>
-            );
-        };
-
-        const ShareAccessModal = ({ user, db, appId, currentData, onClose }) => {
-            const { setDoc, doc, deleteDoc, collection, query, where, onSnapshot } = window.firebaseModules.firestore;
-            const [code, setCode] = useState(null);
-            const [active, setActive] = useState([]);
-            
-            useEffect(() => {
-                const unsub = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'guestCodes'), where('ownerUid', '==', user.uid)), s => setActive(s.docs.map(d => ({id:d.id, ...d.data()}))));
-                return () => unsub();
-            }, []);
-
-            const create = async () => {
-                const c = Math.random().toString(36).substring(2,8).toUpperCase();
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', c), { ...currentData, ownerUid: user.uid, expiresAt: Date.now() + 86400000 });
-                setCode(c);
-            };
-
-            return (
-                <div className="fixed inset-0 bg-white z-50 p-6 flex flex-col">
-                    <div className="flex justify-between items-center mb-8"><h2 className="text-2xl font-black">Share</h2><button onClick={onClose}><XIcon size={24}/></button></div>
-                    <div className="text-center py-8 bg-gray-50 rounded-2xl mb-8">
-                        {code ? <div className="text-5xl font-mono font-black tracking-widest">{code}</div> : <button onClick={create} className="bg-black text-white px-6 py-3 rounded-xl font-bold">Generate Code (24h)</button>}
-                        {code && <div className="text-green-600 font-bold mt-2">Active</div>}
-                    </div>
-                    <div className="space-y-2">
-                        <div className="font-bold text-gray-400 text-sm uppercase">Active Codes</div>
-                        {active.map(c => <div key={c.id} className="flex justify-between p-3 border rounded-xl"><span className="font-mono font-bold">{c.id}</span><button onClick={()=>deleteDoc(doc(db,'artifacts',appId,'public','data','guestCodes',c.id))} className="text-red-500 font-bold text-sm">Revoke</button></div>)}
+    const FullAuditReport = ({ records, vehicleProfile, onClose }) => {
+        const sortedRecords = [...records].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        return (
+            <div className="fixed inset-0 bg-white z-[60] overflow-y-auto flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50 sticky top-0 no-print">
+                    <h2 className="font-bold text-lg">Audit Report</h2>
+                    <div className="flex gap-2">
+                        <button onClick={() => window.print()} className="bg-gray-200 p-2 rounded-lg"><PrinterIcon size={20}/></button>
+                        <button onClick={onClose} className="bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm">Close</button>
                     </div>
                 </div>
-            );
-        };
-
-        const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName, isReadOnly, onItemClick, damageReports = [], onViewDamage }) => {
-            const [odo, setOdo] = useState(currentOdo);
-            useEffect(() => setOdo(currentOdo), [currentOdo]);
-
-            const activeDamage = useMemo(() => (damageReports || []).filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore), [damageReports]);
-
-            const items = useMemo(() => schedule.map(i => {
-                const recs = records.filter(r => r.serviceType === i.name).sort((a,b) => b.mileage - a.mileage);
-                const last = recs[0] || { date: new Date().toISOString(), mileage: 0 };
-                const dist = currentOdo - last.mileage;
-                
-                let status = 'good';
-                let progress = 100;
-                let label = '';
-
-                if (i.intervalMiles > 0) {
-                    const rem = i.intervalMiles - dist;
-                    progress = Math.max(0, Math.min(100, (rem / i.intervalMiles) * 100));
-                    label = rem >= 1000 ? (rem/1000).toFixed(1) + 'k' : Math.round(rem).toString();
-                    if (rem < 0) {
-                        status = 'overdue';
-                        label = '+' + Math.abs(Math.round(rem)).toLocaleString(); 
-                    }
-                    else if (rem < 1000) status = 'due';
-                } else {
-                    const daysSince = (new Date() - new Date(last.date)) / 86400000;
-                    const validDays = isNaN(daysSince) ? 0 : daysSince;
-                    const totalDays = i.intervalMonths * 30;
-                    const remDays = totalDays - validDays;
-                    progress = Math.max(0, Math.min(100, (remDays / totalDays) * 100));
-                    label = Math.round(remDays) + 'd';
-                    if (remDays < 0) status = 'overdue';
-                    else if (remDays < 30) status = 'due';
-                }
-                return { ...i, status, progress, label };
-            }), [records, currentOdo, schedule]);
-
-            const Circle = ({ percent, color, text }) => {
-                const r = 20;
-                const c = 2 * Math.PI * r;
-                const offset = c - (percent / 100) * c;
-                return (
-                    <div className="relative flex items-center justify-center w-12 h-12">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" className="text-gray-100" />
-                            <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round" className={color} />
-                        </svg>
-                        <span className={`absolute text-[10px] font-black ${color.replace('text-', 'text-opacity-80 text-')}`}>{text}</span>
+                <div className="p-6">
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-black">{vehicleProfile.yearMakeModel || 'Vehicle Report'}</h1>
+                        <div className="font-mono text-sm text-gray-500 mt-1">{vehicleProfile.vin || 'No VIN'}</div>
                     </div>
-                );
-            };
-
-            return (
-                <div className="pb-24">
-                    <AlertBanner items={items} />
-
-                    {/* Active Damage Block */}
-                    {activeDamage.length > 0 && (
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-2 px-1">
-                                <div className="bg-red-100 p-1 rounded-full animate-pulse"><div className="w-2 h-2 bg-red-600 rounded-full"></div></div>
-                                <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Active Issues ({activeDamage.length})</span>
+                    <div className="space-y-4">
+                        {sortedRecords.map((r, i) => (
+                            <div key={r.id} className="audit-record p-4 rounded-lg border border-gray-200">
+                                <div className="flex justify-between font-bold mb-2">
+                                    <span>{r.serviceType}</span>
+                                    <span className="font-mono text-sm">{formatDate(r.date)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>{r.mileage.toLocaleString()} mi</span>
+                                </div>
+                                {r.parts && <div className="text-sm bg-gray-50 p-2 rounded">{r.parts}</div>}
+                                {r.notes && <div className="text-xs italic text-gray-400 mt-1">{r.notes}</div>}
                             </div>
-                            <div className="space-y-2">
-                                {activeDamage.map(r => (
-                                    <div key={r.id} onClick={() => onViewDamage(r)} className={`bg-white p-4 rounded-2xl shadow-soft border flex items-center gap-3 active:scale-[0.98] transition-transform ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
-                                         <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
-                                            {r.images[0] ? <img src={r.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><AlertOctagonIcon size={20}/></div>}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-gray-900 truncate">{r.title}</div>
-                                            <div className="text-xs text-gray-500 truncate">{r.location} • <span className={getSeverityColor(r.severityScore).split(' ')[0]}>{getSeverityLabel(r.severityScore)}</span></div>
-                                        </div>
-                                        <div className="text-gray-300"><Icon><polyline points="9 18 15 12 9 6"/></Icon></div>
-                                    </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const Login = ({ setUser, auth, onGuestLogin }) => {
+        const [mode, setMode] = useState('login'); 
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const [guestCode, setGuestCode] = useState('');
+        const [error, setError] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        const handle = async (e) => {
+            e.preventDefault(); setError(''); setLoading(true);
+            try {
+                if (mode === 'register') await createUserWithEmailAndPassword(auth, email, password);
+                else if (mode === 'login') await signInWithEmailAndPassword(auth, email, password);
+                else if (mode === 'guest') await onGuestLogin(guestCode.trim().toUpperCase());
+            } catch (err) { setError(err.message); setLoading(false); }
+        };
+
+        return (
+            <div className="min-h-screen flex items-center justify-center p-6 bg-gray-100">
+                <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl">
+                    <div className="text-center mb-8">
+                        <div className="inline-block p-4 bg-gray-900 text-white rounded-2xl mb-4"><CarIcon size={32} /></div>
+                        <h1 className="text-3xl font-black text-gray-900">HTMS</h1>
+                    </div>
+                    {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-bold mb-4 text-center">{error}</div>}
+                    <form onSubmit={handle} className="space-y-4">
+                        {mode === 'guest' ? (
+                            <input className="w-full p-4 text-center text-2xl font-mono border-2 border-gray-200 rounded-xl focus:border-gray-900 outline-none uppercase tracking-widest" placeholder="CODE" value={guestCode} onChange={e => setGuestCode(e.target.value)} />
+                        ) : (
+                            <>
+                                <input type="email" placeholder="Email" className="w-full p-4 bg-gray-50 rounded-xl outline-none border border-transparent focus:bg-white focus:border-gray-300 font-medium" value={email} onChange={e => setEmail(e.target.value)} />
+                                <input type="password" placeholder="Password" className="w-full p-4 bg-gray-50 rounded-xl outline-none border border-transparent focus:bg-white focus:border-gray-300 font-medium" value={password} onChange={e => setPassword(e.target.value)} />
+                            </>
+                        )}
+                        <button disabled={loading} className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200 active:scale-95 transition-transform">{loading ? '...' : (mode === 'guest' ? 'Access' : mode === 'register' ? 'Sign Up' : 'Sign In')}</button>
+                    </form>
+                    <div className="mt-6 flex justify-center gap-4 text-sm font-bold text-gray-400">
+                        <button onClick={() => setMode('login')} className={mode === 'login' ? 'text-gray-900' : ''}>Login</button>
+                        <button onClick={() => setMode('register')} className={mode === 'register' ? 'text-gray-900' : ''}>Join</button>
+                        <button onClick={() => setMode('guest')} className={mode === 'guest' ? 'text-gray-900' : ''}>Guest</button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const ServiceForm = ({ user, initialData, onClose, onSuccess, db, appId, schedule }) => {
+        const [mode, setMode] = useState('single');
+        const [common, setCommon] = useState({ date: initialData?.date || new Date().toISOString().split('T')[0], mileage: initialData?.mileage || '', notes: initialData?.notes || '' });
+        const [single, setSingle] = useState({ type: initialData?.serviceType || (schedule[0]?.name || 'Oil'), parts: initialData?.parts || '', sku: initialData?.skuReference || '', img: initialData?.receiptImage || null });
+        const [multi, setMulti] = useState({});
+        const [otherName, setOtherName] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        const handleFile = async (e) => {
+            if (e.target.files?.[0]) {
+                setLoading(true);
+                try { const b64 = await compressImage(e.target.files[0]); setSingle(s => ({ ...s, img: b64 })); } finally { setLoading(false); }
+            }
+        };
+
+        const submit = async (e) => {
+            e.preventDefault(); setLoading(true);
+            try {
+                const ts = serverTimestamp();
+                const base = { date: common.date, mileage: Number(common.mileage), timestamp: ts };
+                if (mode === 'single') {
+                    const d = { ...base, serviceType: single.type, parts: single.parts, skuReference: single.sku, notes: common.notes, receiptImage: single.img };
+                    if (initialData) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', initialData.id), d);
+                    else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), d);
+                } else {
+                    await Promise.all(Object.entries(multi).map(([n, d]) => addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords'), { ...base, serviceType: n === 'Other' ? otherName : n, parts: d.parts, skuReference: d.sku, notes: common.notes })));
+                }
+                onSuccess(); onClose();
+            } catch (e) { alert(e.message); } finally { setLoading(false); }
+        };
+
+        return (
+            <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="p-4 flex justify-between items-center border-b">
+                    <button onClick={onClose} className="text-gray-500 font-bold">Cancel</button>
+                    <h2 className="font-black text-lg">{initialData ? 'Edit' : 'Log Service'}</h2>
+                    <button onClick={submit} disabled={loading} className="text-blue-600 font-bold">{loading ? '...' : 'Save'}</button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="flex gap-4">
+                        <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Date</label><input type="date" className="w-full p-3 bg-gray-50 rounded-xl font-bold" value={common.date} onChange={e => setCommon({...common, date: e.target.value})} /></div>
+                        <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Miles</label><input type="number" className="w-full p-3 bg-gray-50 rounded-xl font-bold" value={common.mileage} onChange={e => setCommon({...common, mileage: e.target.value})} /></div>
+                    </div>
+                    {!initialData && <div className="flex bg-gray-100 p-1 rounded-xl"><button onClick={() => setMode('single')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'single' ? 'bg-white shadow' : 'text-gray-500'}`}>One</button><button onClick={() => setMode('multi')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${mode === 'multi' ? 'bg-white shadow' : 'text-gray-500'}`}>Multiple</button></div>}
+                    
+                    {mode === 'single' ? (
+                        <div className="space-y-4">
+                            <div><label className="text-xs font-bold text-gray-400 uppercase">Service</label><select className="w-full p-3 bg-gray-50 rounded-xl font-bold appearance-none" value={single.type} onChange={e => setSingle({...single, type: e.target.value})}>{schedule.map(i => <option key={i.id} value={i.name}>{i.name}</option>)}<option value="Other">Other</option></select></div>
+                            <div><label className="text-xs font-bold text-gray-400 uppercase">Parts</label><textarea className="w-full p-3 bg-gray-50 rounded-xl h-24" value={single.parts} onChange={e => setSingle({...single, parts: e.target.value})} /></div>
+                            <div className="flex gap-4 items-center">
+                                <div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">SKU</label><input className="w-full p-3 bg-gray-50 rounded-xl" value={single.sku} onChange={e => setSingle({...single, sku: e.target.value})} /></div>
+                                <label className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-xl cursor-pointer mt-4 relative overflow-hidden">
+                                    {single.img ? <img src={single.img} className="w-full h-full object-cover"/> : <ImageIcon className="text-gray-400"/>}
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleFile} />
+                                </label>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase">Select Services</label>
+                            <div className="flex flex-wrap gap-2">
+                                {[...schedule, {id:'other', name:'Other'}].map(i => (
+                                    <button key={i.id} type="button" onClick={() => setMulti(p => { const n = {...p}; if(n[i.name]) delete n[i.name]; else n[i.name]={parts:'',sku:''}; return n; })} className={`px-4 py-2 rounded-full text-sm font-bold border ${multi[i.name] ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200'}`}>{i.name}</button>
                                 ))}
                             </div>
-                        </div>
-                    )}
-                    
-                    <div className="mb-8 text-center">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{vehicleName}</div>
-                        <div className="inline-flex items-center gap-2 justify-center">
-                            {isReadOnly ? <span className="text-5xl font-black tracking-tighter">{currentOdo.toLocaleString()}</span> : (
-                                <input type="number" className="text-5xl font-black text-center bg-transparent outline-none w-full max-w-[300px]" value={odo} onChange={e => setOdo(parseInt(e.target.value) || 0)} onBlur={() => onUpdateOdo(odo)} />
-                            )}
-                        </div>
-                        <div className="text-sm font-bold text-gray-400 mt-1">MILES</div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3">
-                        {items.map(i => {
-                            const color = i.status === 'overdue' ? 'text-red-500' : i.status === 'due' ? 'text-yellow-500' : 'text-green-500';
-                            return (
-                                <div key={i.id} onClick={() => onItemClick(i)} className="bg-white p-4 rounded-2xl shadow-soft border border-gray-100 active:scale-[0.98] transition-transform flex items-center justify-between">
-                                    <span className="font-bold text-lg text-gray-800">{i.name}</span>
-                                    <div className="flex items-center gap-4">
-                                        {i.alertEnabled === false && <BellOffIcon size={16} className="text-gray-300"/>}
-                                        <Circle percent={i.progress} color={color} text={i.label} />
-                                    </div>
+                            {Object.keys(multi).map(n => (
+                                <div key={n} className="bg-gray-50 p-4 rounded-xl mt-4">
+                                    <div className="font-bold mb-2">{n === 'Other' ? <input placeholder="Name" className="bg-white p-1 rounded" value={otherName} onChange={e=>setOtherName(e.target.value)}/> : n}</div>
+                                    <div className="flex gap-2"><input placeholder="Parts" className="flex-1 p-2 rounded border" value={multi[n].parts} onChange={e => setMulti(p => ({...p, [n]: {...p[n], parts: e.target.value}}))}/><input placeholder="SKU" className="w-20 p-2 rounded border" value={multi[n].sku} onChange={e => setMulti(p => ({...p, [n]: {...p[n], sku: e.target.value}}))}/></div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        };
-
-        const AuditLog = ({ records, onEdit, onDelete, isReadOnly }) => {
-            const sorted = [...records].sort((a,b) => new Date(b.date) - new Date(a.date));
-            return (
-                <div className="space-y-4 pb-24">
-                    {sorted.map(r => (
-                        <div key={r.id} className="bg-white p-4 rounded-2xl shadow-soft border border-gray-100 flex justify-between items-center">
-                            <div>
-                                <div className="font-bold text-lg">{r.serviceType}</div>
-                                <div className="text-sm text-gray-500">{formatDate(r.date)} • {r.mileage.toLocaleString()} mi</div>
-                            </div>
-                            {!isReadOnly && <div className="flex gap-2">
-                                <button onClick={() => onEdit(r)} className="p-2 bg-gray-50 rounded-lg text-blue-600"><EditIcon size={18}/></button>
-                                <button onClick={() => onDelete(r.id)} className="p-2 bg-gray-50 rounded-lg text-red-500"><TrashIcon size={18}/></button>
-                            </div>}
-                        </div>
-                    ))}
-                    {sorted.length === 0 && <div className="text-center text-gray-400 py-10">No records</div>}
-                </div>
-            );
-        };
-
-        const ReceiptGallery = ({ records, onViewImage }) => {
-            const withReceipts = records.filter(r => r.receiptImage).sort((a,b) => new Date(b.date) - new Date(a.date));
-            
-            if (withReceipts.length === 0) return <div className="text-center text-gray-400 py-10 font-bold">No receipts found</div>;
-
-            return (
-                <div className="grid grid-cols-2 gap-4 pb-24">
-                    {withReceipts.map(r => (
-                        <div key={r.id} onClick={() => onViewImage(r.receiptImage, `${r.serviceType} (${formatDate(r.date)})`)} className="bg-white p-2 rounded-2xl shadow-soft border border-gray-100 active:scale-95 transition-transform">
-                            <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 mb-2">
-                                <img src={r.receiptImage} className="w-full h-full object-cover" loading="lazy" />
-                            </div>
-                            <div className="px-1">
-                                <div className="font-bold text-xs truncate">{r.serviceType}</div>
-                                <div className="text-[10px] text-gray-400 font-mono">{formatDate(r.date)}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
-        // --- MAIN APP ---
-        const App = () => {
-            const { initializeApp } = window.firebaseModules;
-            const { getAuth, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, signInWithEmailAndPassword } = window.firebaseModules.auth;
-            const { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, deleteDoc } = window.firebaseModules.firestore;
-
-            const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIzaSyDHEOTsbzOMcFybpHdNLRi94edBOc2eA-s", authDomain: "homemaint-5e4c5.firebaseapp.com", projectId: "homemaint-5e4c5", storageBucket: "homemaint-5e4c5.firebasestorage.app", messagingSenderId: "1026666678068", appId: "1:1026666678068:web:76fad71dc8e855a08bc761" };
-            const app = useMemo(() => initializeApp(config), []);
-            const auth = useMemo(() => getAuth(app), [app]);
-            const db = useMemo(() => getFirestore(app), [app]);
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'diy-warranty-tracker';
-
-            const [user, setUser] = useState(null);
-            const [view, setView] = useState('dash');
-            const [isGuest, setIsGuest] = useState(false);
-            const [data, setData] = useState({ records: [], schedule: DEFAULT_SCHEDULE, odo: 0, profile: {}, damageReports: [] });
-            const [modals, setModals] = useState({ form: false, sched: false, car: false, share: false, audit: false, img: null, history: null, damage: false, damageDetail: null, repair: null });
-            const [editRec, setEditRec] = useState(null);
-
-            useEffect(() => {
-                const init = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); }; init();
-                return onAuthStateChanged(auth, u => !isGuest && setUser(u));
-            }, [auth, isGuest]);
-
-            useEffect(() => {
-                if (!user || isGuest || user.email === 'openaccess@open.com') return;
-                const unsubRecs = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords')), s => setData(p => ({ ...p, records: s.docs.map(d => ({id:d.id, ...d.data()})) })));
-                const unsubDamage = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports')), s => setData(p => ({ ...p, damageReports: s.docs.map(d => ({id:d.id, ...d.data()})) })));
-
-                const load = async () => {
-                    const [gen, sch, pro] = await Promise.all(['general', 'maintenanceSchedule', 'vehicleProfile'].map(k => getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', k))));
-                    setData(p => ({
-                        ...p,
-                        odo: gen.data()?.currentOdo || 45000,
-                        schedule: sch.data()?.items ? sch.data().items.map(i => ({ ...i, alertEnabled: i.alertEnabled !== false })) : DEFAULT_SCHEDULE,
-                        profile: pro.data() || { yearMakeModel: 'My Car' }
-                    }));
-                }; load();
-                return () => { unsubRecs(); unsubDamage(); };
-            }, [user, isGuest]);
-
-            const guestLogin = async (code) => {
-                try {
-                    await signInWithEmailAndPassword(auth, 'openaccess@open.com', 'openaccess').catch(() => signInAnonymously(auth));
-                    const s = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code));
-                    if (!s.exists() || Date.now() > s.data().expiresAt) throw new Error("Invalid Code");
-                    setIsGuest(true);
-                    setData({ records: s.data().records || [], schedule: s.data().schedule || DEFAULT_SCHEDULE, odo: s.data().odo || 0, profile: s.data().profile || {}, damageReports: s.data().damageReports || [] });
-                } catch (e) { throw e; }
-            };
-
-            const updateOdo = async (v) => { if(!isGuest) { setData(p=>({...p, odo:v})); await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general'), { currentOdo: v }, { merge: true }); } };
-            const delRec = async (id) => { if(!isGuest && confirm('Delete?')) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', id)); };
-
-            if (!user && !isGuest) return <Login setUser={setUser} auth={auth} onGuestLogin={guestLogin} />;
-
-            return (
-                <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
-                    <nav className="bg-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm no-print">
-                        <div className="font-black text-xl tracking-tight">HTMS</div>
-                        <div className="flex gap-4 text-gray-400">
-                            {!isGuest ? (
-                                <>
-                                    <button onClick={() => setModals({...modals, share: true})}><KeyIcon size={22}/></button>
-                                    <button onClick={() => signOut(auth)}><LogOutIcon size={22}/></button>
-                                </>
-                            ) : <button onClick={() => window.location.reload()} className="text-xs font-bold bg-red-100 text-red-600 px-2 py-1 rounded">EXIT</button>}
-                        </div>
-                    </nav>
-
-                    <div className="p-4 max-w-lg mx-auto">
-                        <div className="flex bg-gray-200 p-1 rounded-xl mb-6 font-bold text-[10px] sm:text-xs no-print overflow-x-auto">
-                            <button onClick={() => setView('dash')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'dash' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Dash</button>
-                            <button onClick={() => setView('audit')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'audit' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Log</button>
-                            <button onClick={() => setView('receipts')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'receipts' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Receipts</button>
-                            <button onClick={() => setView('damage')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'damage' ? 'bg-white shadow text-red-600' : 'text-gray-500'}`}>Damage</button>
-                        </div>
-
-                        {view === 'dash' && <Dashboard records={data.records} currentOdo={data.odo} onUpdateOdo={updateOdo} schedule={data.schedule} vehicleName={data.profile.yearMakeModel} isReadOnly={isGuest} onItemClick={i => setModals({...modals, history: i})} damageReports={data.damageReports} onViewDamage={r => setModals({...modals, damageDetail: r})} />}
-                        {view === 'audit' && <AuditLog records={data.records} onEdit={r => { setEditRec(r); setModals({...modals, form: true}); }} onDelete={delRec} isReadOnly={isGuest} />}
-                        {view === 'receipts' && <ReceiptGallery records={data.records} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
-                        {view === 'damage' && <DamageList reports={data.damageReports} onReportDamage={() => setModals({...modals, damage: true})} onViewReport={(r) => setModals({...modals, damageDetail: r})} />}
-                    </div>
-
-                    {!isGuest && (
-                        <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-2 flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] no-print">
-                            <button onClick={() => setModals({...modals, car: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><BadgeIcon size={24}/><span className="text-[10px] font-bold mt-1">CAR</span></button>
-                            <button onClick={() => { setEditRec(null); setModals({...modals, form: true}); }} className="flex flex-col items-center justify-center bg-black text-white w-14 h-14 rounded-2xl -mt-8 shadow-xl shadow-gray-400/50 active:scale-95 transition-transform"><PlusCircleIcon size={28}/></button>
-                            <button onClick={() => setModals({...modals, sched: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><SettingsIcon size={24}/><span className="text-[10px] font-bold mt-1">SCHED</span></button>
+                            ))}
                         </div>
                     )}
-                    
-                    {view === 'audit' && <button onClick={() => setModals({...modals, audit: true})} className="fixed bottom-24 right-4 bg-gray-900 text-white p-4 rounded-full shadow-xl z-30 no-print"><PrinterIcon size={24}/></button>}
+                    <div><label className="text-xs font-bold text-gray-400 uppercase">Notes</label><textarea className="w-full p-3 bg-gray-50 rounded-xl h-20" value={common.notes} onChange={e => setCommon({...common, notes: e.target.value})} /></div>
+                </div>
+            </div>
+        );
+    };
 
-                    {/* MODALS */}
-                    {modals.form && <ServiceForm user={user} db={db} appId={appId} schedule={data.schedule} initialData={editRec} onClose={() => setModals({...modals, form: false})} onSuccess={() => {}} />}
-                    {modals.sched && <ScheduleManager user={user} db={db} appId={appId} currentSchedule={data.schedule} onClose={() => setModals({...modals, sched: false})} onUpdate={s => setData({...data, schedule: s})} />}
-                    {modals.car && <VehicleProfileModal user={user} db={db} appId={appId} currentProfile={data.profile} onClose={() => setModals({...modals, car: false})} onUpdate={p => setData({...data, profile: p})} />}
-                    {modals.share && <ShareAccessModal user={user} db={db} appId={appId} currentData={data} onClose={() => setModals({...modals, share: false})} />}
-                    {modals.audit && <FullAuditReport records={data.records} vehicleProfile={data.profile} onClose={() => setModals({...modals, audit: false})} />}
-                    {modals.history && <ItemHistoryModal item={modals.history} records={data.records} onClose={() => setModals({...modals, history: null})} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
-                    {modals.img && <ImageViewerModal src={modals.img.src} title={modals.img.t} onClose={() => setModals({...modals, img: null})} />}
-                    {modals.damage && <DamageForm user={user} db={db} appId={appId} onClose={() => setModals({...modals, damage: false})} onSuccess={()=>{}} />}
-                    {modals.damageDetail && <DamageDetailModal report={modals.damageDetail} onClose={() => setModals({...modals, damageDetail: null})} onRepair={(r) => { setModals({...modals, damageDetail: null, repair: r}); }} />}
-                    {modals.repair && <RepairForm user={user} db={db} appId={appId} damageReport={modals.repair} onClose={() => setModals({...modals, repair: null})} onSuccess={()=>{}} />}
+    const ScheduleManager = ({ user, db, appId, currentSchedule, onClose, onUpdate }) => {
+        const [items, setItems] = useState(currentSchedule);
+        const [n, setN] = useState({ name: '', mi: 5000, mo: 6 });
+        
+        const save = async (list) => { await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'maintenanceSchedule'), { items: list }); onUpdate(list); };
+        const add = () => { const l = [...items, {...n, id: Date.now().toString(), intervalMiles: n.mi, intervalMonths: n.mo, alertEnabled: true}]; setItems(l); save(l); setN({name:'',mi:5000,mo:6}); };
+        const del = (id) => { const l = items.filter(i => i.id !== id); setItems(l); save(l); };
+        const toggle = (id) => { const l = items.map(i => i.id === id ? { ...i, alertEnabled: !i.alertEnabled } : i); setItems(l); save(l); };
+
+        return (
+            <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center"><h2 className="font-black text-lg">Schedule</h2><button onClick={onClose} className="bg-gray-200 p-2 rounded-full"><XIcon size={20}/></button></div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="flex gap-2 mb-6">
+                        <input className="flex-1 p-3 bg-gray-100 rounded-xl font-bold" placeholder="New Item" value={n.name} onChange={e=>setN({...n,name:e.target.value})} />
+                        <input type="number" className="w-16 p-3 bg-gray-100 rounded-xl text-center" placeholder="mi" value={n.mi} onChange={e=>setN({...n,mi:parseInt(e.target.value)})} />
+                        <input type="number" className="w-16 p-3 bg-gray-100 rounded-xl text-center" placeholder="mo" value={n.mo} onChange={e=>setN({...n,mo:parseInt(e.target.value)})} />
+                        <button onClick={add} className="bg-blue-600 text-white p-3 rounded-xl"><PlusCircleIcon size={24}/></button>
+                    </div>
+                    {items.map(i => (
+                        <div key={i.id} className="flex items-center gap-3 p-3 border rounded-xl">
+                            <button onClick={()=>toggle(i.id)} className={i.alertEnabled!==false?'text-blue-600':'text-gray-300'}><BellIcon size={20}/></button>
+                            <div className="flex-1 font-bold">{i.name}</div>
+                            <div className="text-xs text-gray-400 font-mono text-right">{i.intervalMiles}mi<br/>{i.intervalMonths}mo</div>
+                            <button onClick={()=>del(i.id)} className="text-red-400"><TrashIcon size={20}/></button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const VehicleProfileModal = ({ user, db, appId, currentProfile, onClose, onUpdate }) => {
+        const [p, setP] = useState(currentProfile);
+        const save = async (e) => { e.preventDefault(); await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'vehicleProfile'), p); onUpdate(p); onClose(); };
+        return (
+            <div className="fixed inset-0 bg-white z-50 p-6 flex flex-col justify-center">
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full"><XIcon size={24}/></button>
+                <h2 className="text-3xl font-black mb-8">Vehicle</h2>
+                <form onSubmit={save} className="space-y-4">
+                    <input className="w-full p-4 bg-gray-50 rounded-xl font-bold" placeholder="Year Make Model" value={p.yearMakeModel} onChange={e=>setP({...p,yearMakeModel:e.target.value})} required/>
+                    <input className="w-full p-4 bg-gray-50 rounded-xl font-mono uppercase" placeholder="VIN" value={p.vin} onChange={e=>setP({...p,vin:e.target.value})} />
+                    <input className="w-full p-4 bg-gray-50 rounded-xl uppercase" placeholder="License Plate" value={p.licensePlate} onChange={e=>setP({...p,licensePlate:e.target.value})} />
+                    <input className="w-full p-4 bg-gray-50 rounded-xl" placeholder="Owner Name" value={p.ownerName} onChange={e=>setP({...p,ownerName:e.target.value})} />
+                    <button className="w-full bg-black text-white py-4 rounded-xl font-bold mt-4">Save</button>
+                </form>
+            </div>
+        );
+    };
+
+    const ShareAccessModal = ({ user, db, appId, currentData, onClose }) => {
+        const [code, setCode] = useState(null);
+        const [active, setActive] = useState([]);
+        
+        useEffect(() => {
+            const unsub = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'guestCodes'), where('ownerUid', '==', user.uid)), s => setActive(s.docs.map(d => ({id:d.id, ...d.data()}))));
+            return () => unsub();
+        }, []);
+
+        const create = async () => {
+            const c = Math.random().toString(36).substring(2,8).toUpperCase();
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', c), { ...currentData, ownerUid: user.uid, expiresAt: Date.now() + 86400000 });
+            setCode(c);
+        };
+
+        return (
+            <div className="fixed inset-0 bg-white z-50 p-6 flex flex-col">
+                <div className="flex justify-between items-center mb-8"><h2 className="text-2xl font-black">Share</h2><button onClick={onClose}><XIcon size={24}/></button></div>
+                <div className="text-center py-8 bg-gray-50 rounded-2xl mb-8">
+                    {code ? <div className="text-5xl font-mono font-black tracking-widest">{code}</div> : <button onClick={create} className="bg-black text-white px-6 py-3 rounded-xl font-bold">Generate Code (24h)</button>}
+                    {code && <div className="text-green-600 font-bold mt-2">Active</div>}
+                </div>
+                <div className="space-y-2">
+                    <div className="font-bold text-gray-400 text-sm uppercase">Active Codes</div>
+                    {active.map(c => <div key={c.id} className="flex justify-between p-3 border rounded-xl"><span className="font-mono font-bold">{c.id}</span><button onClick={()=>deleteDoc(doc(db,'artifacts',appId,'public','data','guestCodes',c.id))} className="text-red-500 font-bold text-sm">Revoke</button></div>)}
+                </div>
+            </div>
+        );
+    };
+
+    const Dashboard = ({ records, currentOdo, onUpdateOdo, schedule, vehicleName, isReadOnly, onItemClick, damageReports = [], onViewDamage }) => {
+        const [odo, setOdo] = useState(currentOdo);
+        useEffect(() => setOdo(currentOdo), [currentOdo]);
+
+        const activeDamage = useMemo(() => (damageReports || []).filter(r => r.status === 'open').sort((a,b) => b.severityScore - a.severityScore), [damageReports]);
+
+        const items = useMemo(() => schedule.map(i => {
+            const recs = records.filter(r => r.serviceType === i.name).sort((a,b) => b.mileage - a.mileage);
+            const last = recs[0] || { date: new Date().toISOString(), mileage: 0 };
+            const dist = currentOdo - last.mileage;
+            
+            let status = 'good';
+            let progress = 100;
+            let label = '';
+
+            if (i.intervalMiles > 0) {
+                const rem = i.intervalMiles - dist;
+                progress = Math.max(0, Math.min(100, (rem / i.intervalMiles) * 100));
+                label = rem >= 1000 ? (rem/1000).toFixed(1) + 'k' : Math.round(rem).toString();
+                if (rem < 0) {
+                    status = 'overdue';
+                    label = '+' + Math.abs(Math.round(rem)).toLocaleString(); 
+                }
+                else if (rem < 1000) status = 'due';
+            } else {
+                const daysSince = (new Date() - new Date(last.date)) / 86400000;
+                const validDays = isNaN(daysSince) ? 0 : daysSince;
+                const totalDays = i.intervalMonths * 30;
+                const remDays = totalDays - validDays;
+                progress = Math.max(0, Math.min(100, (remDays / totalDays) * 100));
+                label = Math.round(remDays) + 'd';
+                if (remDays < 0) status = 'overdue';
+                else if (remDays < 30) status = 'due';
+            }
+            return { ...i, status, progress, label };
+        }), [records, currentOdo, schedule]);
+
+        const Circle = ({ percent, color, text }) => {
+            const r = 20;
+            const c = 2 * Math.PI * r;
+            const offset = c - (percent / 100) * c;
+            return (
+                <div className="relative flex items-center justify-center w-12 h-12">
+                    <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" className="text-gray-100" />
+                        <circle cx="24" cy="24" r={r} stroke="currentColor" strokeWidth="5" fill="transparent" strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round" className={color} />
+                    </svg>
+                    <span className={`absolute text-[10px] font-black ${color.replace('text-', 'text-opacity-80 text-')}`}>{text}</span>
                 </div>
             );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<AppWrapper />);
-    </script>
+        return (
+            <div className="pb-24">
+                <AlertBanner items={items} />
+
+                {/* Active Damage Block */}
+                {activeDamage.length > 0 && (
+                    <div className="mb-6">
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <div className="bg-red-100 p-1 rounded-full animate-pulse"><div className="w-2 h-2 bg-red-600 rounded-full"></div></div>
+                            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Active Issues ({activeDamage.length})</span>
+                        </div>
+                        <div className="space-y-2">
+                            {activeDamage.map(r => (
+                                <div key={r.id} onClick={() => onViewDamage(r)} className={`bg-white p-4 rounded-2xl shadow-soft border flex items-center gap-3 active:scale-[0.98] transition-transform ${getSeverityColor(r.severityScore).replace('text-', 'border-l-4 border-l-')}`}>
+                                     <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                                        {r.images[0] ? <img src={r.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><AlertOctagonIcon size={20}/></div>}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-bold text-gray-900 truncate">{r.title}</div>
+                                        <div className="text-xs text-gray-500 truncate">{r.location} • <span className={getSeverityColor(r.severityScore).split(' ')[0]}>{getSeverityLabel(r.severityScore)}</span></div>
+                                    </div>
+                                    <div className="text-gray-300"><Icon><polyline points="9 18 15 12 9 6"/></Icon></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                <div className="mb-8 text-center">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{vehicleName}</div>
+                    <div className="inline-flex items-center gap-2 justify-center">
+                        {isReadOnly ? <span className="text-5xl font-black tracking-tighter">{currentOdo.toLocaleString()}</span> : (
+                            <input type="number" className="text-5xl font-black text-center bg-transparent outline-none w-full max-w-[300px]" value={odo} onChange={e => setOdo(parseInt(e.target.value) || 0)} onBlur={() => onUpdateOdo(odo)} />
+                        )}
+                    </div>
+                    <div className="text-sm font-bold text-gray-400 mt-1">MILES</div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                    {items.map(i => {
+                        const color = i.status === 'overdue' ? 'text-red-500' : i.status === 'due' ? 'text-yellow-500' : 'text-green-500';
+                        return (
+                            <div key={i.id} onClick={() => onItemClick(i)} className="bg-white p-4 rounded-2xl shadow-soft border border-gray-100 active:scale-[0.98] transition-transform flex items-center justify-between">
+                                <span className="font-bold text-lg text-gray-800">{i.name}</span>
+                                <div className="flex items-center gap-4">
+                                    {i.alertEnabled === false && <BellOffIcon size={16} className="text-gray-300"/>}
+                                    <Circle percent={i.progress} color={color} text={i.label} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    const AuditLog = ({ records, onEdit, onDelete, isReadOnly }) => {
+        const sorted = [...records].sort((a,b) => new Date(b.date) - new Date(a.date));
+        return (
+            <div className="space-y-4 pb-24">
+                {sorted.map(r => (
+                    <div key={r.id} className="bg-white p-4 rounded-2xl shadow-soft border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <div className="font-bold text-lg">{r.serviceType}</div>
+                            <div className="text-sm text-gray-500">{formatDate(r.date)} • {r.mileage.toLocaleString()} mi</div>
+                        </div>
+                        {!isReadOnly && <div className="flex gap-2">
+                            <button onClick={() => onEdit(r)} className="p-2 bg-gray-50 rounded-lg text-blue-600"><EditIcon size={18}/></button>
+                            <button onClick={() => onDelete(r.id)} className="p-2 bg-gray-50 rounded-lg text-red-500"><TrashIcon size={18}/></button>
+                        </div>}
+                    </div>
+                ))}
+                {sorted.length === 0 && <div className="text-center text-gray-400 py-10">No records</div>}
+            </div>
+        );
+    };
+
+    const ReceiptGallery = ({ records, onViewImage }) => {
+        const withReceipts = records.filter(r => r.receiptImage).sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        if (withReceipts.length === 0) return <div className="text-center text-gray-400 py-10 font-bold">No receipts found</div>;
+
+        return (
+            <div className="grid grid-cols-2 gap-4 pb-24">
+                {withReceipts.map(r => (
+                    <div key={r.id} onClick={() => onViewImage(r.receiptImage, `${r.serviceType} (${formatDate(r.date)})`)} className="bg-white p-2 rounded-2xl shadow-soft border border-gray-100 active:scale-95 transition-transform">
+                        <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 mb-2">
+                            <img src={r.receiptImage} className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                        <div className="px-1">
+                            <div className="font-bold text-xs truncate">{r.serviceType}</div>
+                            <div className="text-[10px] text-gray-400 font-mono">{formatDate(r.date)}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    // --- 4. MAIN APP ---
+    const App = () => {
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIzaSyDHEOTsbzOMcFybpHdNLRi94edBOc2eA-s", authDomain: "homemaint-5e4c5.firebaseapp.com", projectId: "homemaint-5e4c5", storageBucket: "homemaint-5e4c5.firebasestorage.app", messagingSenderId: "1026666678068", appId: "1:1026666678068:web:76fad71dc8e855a08bc761" };
+        const app = useMemo(() => initializeApp(config), []);
+        const auth = useMemo(() => getAuth(app), [app]);
+        const db = useMemo(() => getFirestore(app), [app]);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'diy-warranty-tracker';
+
+        const [user, setUser] = useState(null);
+        const [view, setView] = useState('dash');
+        const [isGuest, setIsGuest] = useState(false);
+        const [data, setData] = useState({ records: [], schedule: DEFAULT_SCHEDULE, odo: 0, profile: {}, damageReports: [] });
+        const [modals, setModals] = useState({ form: false, sched: false, car: false, share: false, audit: false, img: null, history: null, damage: false, damageDetail: null, repair: null });
+        const [editRec, setEditRec] = useState(null);
+
+        useEffect(() => {
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth();
+            const unsubscribe = onAuthStateChanged(auth, u => !isGuest && setUser(u));
+            return () => unsubscribe();
+        }, [auth, isGuest]);
+
+        useEffect(() => {
+            if (!user || isGuest || user.email === 'openaccess@open.com') return;
+            const unsubRecs = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords')), s => setData(p => ({ ...p, records: s.docs.map(d => ({id:d.id, ...d.data()})) })));
+            const unsubDamage = onSnapshot(query(collection(db, 'artifacts', appId, 'users', user.uid, 'damageReports')), s => setData(p => ({ ...p, damageReports: s.docs.map(d => ({id:d.id, ...d.data()})) })));
+
+            const load = async () => {
+                const [gen, sch, pro] = await Promise.all(['general', 'maintenanceSchedule', 'vehicleProfile'].map(k => getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', k))));
+                setData(p => ({
+                    ...p,
+                    odo: gen.data()?.currentOdo || 45000,
+                    schedule: sch.data()?.items ? sch.data().items.map(i => ({ ...i, alertEnabled: i.alertEnabled !== false })) : DEFAULT_SCHEDULE,
+                    profile: pro.data() || { yearMakeModel: 'My Car' }
+                }));
+            }; load();
+            return () => { unsubRecs(); unsubDamage(); };
+        }, [user, isGuest]);
+
+        const guestLogin = async (code) => {
+            try {
+                await signInWithEmailAndPassword(auth, 'openaccess@open.com', 'openaccess').catch(() => signInAnonymously(auth));
+                const s = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'guestCodes', code));
+                if (!s.exists() || Date.now() > s.data().expiresAt) throw new Error("Invalid Code");
+                setIsGuest(true);
+                setData({ records: s.data().records || [], schedule: s.data().schedule || DEFAULT_SCHEDULE, odo: s.data().odo || 0, profile: s.data().profile || {}, damageReports: s.data().damageReports || [] });
+            } catch (e) { throw e; }
+        };
+
+        const updateOdo = async (v) => { if(!isGuest) { setData(p=>({...p, odo:v})); await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'general'), { currentOdo: v }, { merge: true }); } };
+        const delRec = async (id) => { if(!isGuest && confirm('Delete?')) await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'serviceRecords', id)); };
+
+        if (!user && !isGuest) return <Login setUser={setUser} auth={auth} onGuestLogin={guestLogin} />;
+
+        return (
+            <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
+                <nav className="bg-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm no-print">
+                    <div className="font-black text-xl tracking-tight">HTMS</div>
+                    <div className="flex gap-4 text-gray-400">
+                        {!isGuest ? (
+                            <>
+                                <button onClick={() => setModals({...modals, share: true})}><KeyIcon size={22}/></button>
+                                <button onClick={() => signOut(auth)}><LogOutIcon size={22}/></button>
+                            </>
+                        ) : <button onClick={() => window.location.reload()} className="text-xs font-bold bg-red-100 text-red-600 px-2 py-1 rounded">EXIT</button>}
+                    </div>
+                </nav>
+
+                <div className="p-4 max-w-lg mx-auto">
+                    <div className="flex bg-gray-200 p-1 rounded-xl mb-6 font-bold text-[10px] sm:text-xs no-print overflow-x-auto">
+                        <button onClick={() => setView('dash')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'dash' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Dash</button>
+                        <button onClick={() => setView('audit')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'audit' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Log</button>
+                        <button onClick={() => setView('receipts')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'receipts' ? 'bg-white shadow text-black' : 'text-gray-500'}`}>Receipts</button>
+                        <button onClick={() => setView('damage')} className={`flex-1 py-2 px-1 rounded-lg transition-all whitespace-nowrap ${view === 'damage' ? 'bg-white shadow text-red-600' : 'text-gray-500'}`}>Damage</button>
+                    </div>
+
+                    {view === 'dash' && <Dashboard records={data.records} currentOdo={data.odo} onUpdateOdo={updateOdo} schedule={data.schedule} vehicleName={data.profile.yearMakeModel} isReadOnly={isGuest} onItemClick={i => setModals({...modals, history: i})} damageReports={data.damageReports} onViewDamage={r => setModals({...modals, damageDetail: r})} />}
+                    {view === 'audit' && <AuditLog records={data.records} onEdit={r => { setEditRec(r); setModals({...modals, form: true}); }} onDelete={delRec} isReadOnly={isGuest} />}
+                    {view === 'receipts' && <ReceiptGallery records={data.records} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
+                    {view === 'damage' && <DamageList reports={data.damageReports} onReportDamage={() => setModals({...modals, damage: true})} onViewReport={(r) => setModals({...modals, damageDetail: r})} />}
+                </div>
+
+                {!isGuest && (
+                    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-2 flex justify-around items-center z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] no-print">
+                        <button onClick={() => setModals({...modals, car: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><BadgeIcon size={24}/><span className="text-[10px] font-bold mt-1">CAR</span></button>
+                        <button onClick={() => { setEditRec(null); setModals({...modals, form: true}); }} className="flex flex-col items-center justify-center bg-black text-white w-14 h-14 rounded-2xl -mt-8 shadow-xl shadow-gray-400/50 active:scale-95 transition-transform"><PlusCircleIcon size={28}/></button>
+                        <button onClick={() => setModals({...modals, sched: true})} className="flex flex-col items-center p-2 text-gray-400 hover:text-black active:scale-95 transition-transform"><SettingsIcon size={24}/><span className="text-[10px] font-bold mt-1">SCHED</span></button>
+                    </div>
+                )}
+                
+                {view === 'audit' && <button onClick={() => setModals({...modals, audit: true})} className="fixed bottom-24 right-4 bg-gray-900 text-white p-4 rounded-full shadow-xl z-30 no-print"><PrinterIcon size={24}/></button>}
+
+                {/* MODALS */}
+                {modals.form && <ServiceForm user={user} db={db} appId={appId} schedule={data.schedule} initialData={editRec} onClose={() => setModals({...modals, form: false})} onSuccess={() => {}} />}
+                {modals.sched && <ScheduleManager user={user} db={db} appId={appId} currentSchedule={data.schedule} onClose={() => setModals({...modals, sched: false})} onUpdate={s => setData({...data, schedule: s})} />}
+                {modals.car && <VehicleProfileModal user={user} db={db} appId={appId} currentProfile={data.profile} onClose={() => setModals({...modals, car: false})} onUpdate={p => setData({...data, profile: p})} />}
+                {modals.share && <ShareAccessModal user={user} db={db} appId={appId} currentData={data} onClose={() => setModals({...modals, share: false})} />}
+                {modals.audit && <FullAuditReport records={data.records} vehicleProfile={data.profile} onClose={() => setModals({...modals, audit: false})} />}
+                {modals.history && <ItemHistoryModal item={modals.history} records={data.records} onClose={() => setModals({...modals, history: null})} onViewImage={(src, t) => setModals({...modals, img: {src, t}})} />}
+                {modals.img && <ImageViewerModal src={modals.img.src} title={modals.img.t} onClose={() => setModals({...modals, img: null})} />}
+                {modals.damage && <DamageForm user={user} db={db} appId={appId} onClose={() => setModals({...modals, damage: false})} onSuccess={()=>{}} />}
+                {modals.damageDetail && <DamageDetailModal report={modals.damageDetail} onClose={() => setModals({...modals, damageDetail: null})} onRepair={(r) => { setModals({...modals, damageDetail: null, repair: r}); }} />}
+                {modals.repair && <RepairForm user={user} db={db} appId={appId} damageReport={modals.repair} onClose={() => setModals({...modals, repair: null})} onSuccess={()=>{}} />}
+            </div>
+        );
+    };
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
 </body>
 </html>
